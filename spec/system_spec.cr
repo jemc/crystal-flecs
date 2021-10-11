@@ -19,7 +19,7 @@ module SystemExamples
 
     term age : Age, write: true
 
-    def run(iter)
+    def self.run(iter)
       iter.each { |row|
         row.update_age { |age|
           age.years &+= 1
@@ -35,7 +35,7 @@ module SystemExamples
     term age : Age
     singleton stats : AgeStats, write: true, read: false
 
-    def run(iter)
+    def self.run(iter)
       total_age = 0_u32
       iter.each { |row| total_age &+= row.age.years }
       mean_age = total_age / iter.count
@@ -52,8 +52,8 @@ describe System do
     SystemExamples::SurveyAge::QUERY_STRING
       .should eq "[in] SystemExamples__Age, [out] $SystemExamples__AgeStats"
 
-    SystemExamples::IncrementAge.new.register(world)
-    SystemExamples::SurveyAge.new.register(world)
+    SystemExamples::IncrementAge.register(world)
+    SystemExamples::SurveyAge.register(world)
 
     alice = world.entity_init(name: "Alice")
     bob = world.entity_init(name: "Bob")

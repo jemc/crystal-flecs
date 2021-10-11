@@ -1,5 +1,5 @@
 macro system(name, &block)
-  class {{name}}
+  module {{name}}
     include ECS::System::DSL
     _dsl_begin
     {{block.body}}
@@ -185,20 +185,16 @@ module ECS::System::DSL
     {% INTERNAL_TERMS_COUNTER.clear %}
 
     # Register this system within the given World.
-    def register(world : World)
+    def self.register(world : World)
       # First register anything the system depends on.
       ON_REGISTER_HOOKS.each(&.call(world))
 
       desc = LibECS::SystemDesc.new
-      desc.entity.name = self.class.name
+      desc.entity.name = self.name
       desc.entity.add_expr = PHASE
       desc.query.filter.expr = QUERY_STRING
 
-      desc.ctx = Box.box(self)
-      desc.callback = ->(iter : LibECS::Iter*) {
-        system = Box(typeof(self)).unbox(iter.value.ctx)
-        system.run(Iter.new(iter))
-      }
+      desc.callback = ->(iter : LibECS::Iter*) { run(Iter.new(iter)) }
 
       id = LibECS.system_init(world, pointerof(desc))
     end
