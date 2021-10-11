@@ -8,14 +8,16 @@ module Example
   end
 
   class PrintAge < ECS::System
-    def phase : String; "EcsOnLoad"; end
-    def query : String; "Age"; end
+    phase "EcsOnLoad"
+    query "Age"
 
-    property did_run = false
+    term age : Age
 
     def run
-      @did_run = true
+      @saw_age = get_age(0).age
     end
+
+    property saw_age : UInt64 = 0
   end
 end
 
@@ -62,11 +64,11 @@ describe World do
     system = Example::PrintAge.new
     system.register(world)
 
-    system.did_run.should eq false
+    system.saw_age.should eq 0
 
     world.progress
 
-    system.did_run.should eq true
+    system.saw_age.should eq 99
 
     world.fini
   end
