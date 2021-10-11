@@ -20,7 +20,8 @@ module ECS::System::DSL
 
     struct Iter
       @unsafe : LibECS::Iter*
-      def initialize(@unsafe)
+      @world_root : World::Root
+      def initialize(@unsafe, @world_root : World::Root)
       end
 
       # A table row to be processed by the system during iteration.
@@ -32,6 +33,10 @@ module ECS::System::DSL
         @index : Int32
         def initialize(@unsafe, @index)
         end
+      end
+
+      def world
+        World.new(@unsafe.value.world, @world_root)
       end
 
       # Number of entities to process by system.
@@ -194,7 +199,11 @@ module ECS::System::DSL
       desc.entity.add_expr = PHASE
       desc.query.filter.expr = QUERY_STRING
 
-      desc.callback = ->(iter : LibECS::Iter*) { run(Iter.new(iter)) }
+      desc.ctx = Box.box(world.root)
+      desc.callback = ->(iter : LibECS::Iter*) {
+        world_root = Box(World::Root).unbox(iter.value.ctx)
+        run(Iter.new(iter, world_root))
+      }
 
       id = LibECS.system_init(world, pointerof(desc))
     end
