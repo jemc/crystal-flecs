@@ -49,6 +49,7 @@ module ECS
       sizes : Int32*
       ptrs : Void**
       variable_names : UInt8**
+      variables : UInt64*
       match_indices : Int32**
       references : Void* # TODO: ecs_ref_t *
       terms : Term*
@@ -67,6 +68,9 @@ module ECS
       offset : Int32
       count : Int32
       total_count : Int32
+      bogus : Int32
+      bogus2 : Int32
+      bogus3 : Int32
       is_value : Bool
       triggered_by : Void* # TODO: ecs_ids_t *
       interrupted_by : UInt64

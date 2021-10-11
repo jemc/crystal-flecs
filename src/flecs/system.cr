@@ -20,25 +20,64 @@ module ECS::System::DSL
 
     struct Iter
       @unsafe : LibECS::Iter*
-      def to_unsafe; @unsafe end
       def initialize(@unsafe)
+      end
+
+      # A table row to be processed by the system during iteration.
+      #
+      # It contains macro-generated accessor methods for each term
+      # named during declaration of the system (via the DSL).
+      struct Row
+        @unsafe : LibECS::Iter*
+        @index : Int32
+        def initialize(@unsafe, @index)
+        end
+      end
+
+      # Number of entities to process by system.
+      def count : Int32
+        @unsafe.value.count
+      end
+
+      # Total number of entities in table.
+      def total_count : Int32
+        @unsafe.value.total_count
+      end
+
+      # Yield each Row to be processed by the system.
+      def each
+        count = self.count
+        index = 0
+        while index < count
+          yield Row.new(@unsafe, index)
+          index += 1
+        end
+      end
+    end
+  end
+
+  macro phase(name)
+    PHASE = {{name}}
+  end
+
+  macro term(decl)
+    struct Iter
+      def get_{{decl.var}}(index : Int32) : {{decl.type}}
+        Pointer(Pointer({{decl.type}})).new(
+          @unsafe.value.ptrs.address
+        )[{{ INTERNAL_CURRENT_TERM_DECLS.size }}][index]
       end
     end
 
-    def register(world : World)
-      desc = LibECS::SystemDesc.new
-      desc.entity.name = self.class.name
-      desc.entity.add_expr = self._internal_phase
-      desc.query.filter.expr = self._internal_query
-
-      desc.ctx = Box.box(self)
-      desc.callback = ->(iter : LibECS::Iter*) {
-        system = Box(typeof(self)).unbox(iter.value.ctx)
-        system.run(Iter.new(iter))
-      }
-
-      id = LibECS.system_init(world, pointerof(desc))
+    struct Iter::Row
+      def {{decl.var}} : {{decl.type}}
+        Pointer(Pointer({{decl.type}})).new(
+          @unsafe.value.ptrs.address
+        )[{{ INTERNAL_CURRENT_TERM_DECLS.size }}][@index]
+      end
     end
+
+    {% INTERNAL_CURRENT_TERM_DECLS << decl %}
   end
 
   macro _dsl_end
@@ -52,25 +91,23 @@ module ECS::System::DSL
         ].join(", ")
       {% end %}
 
-    def _internal_query: String; QUERY_STRING; end # TODO: Remove this
-
     # Clear temporary state held in mutable DSL "constants".
     {% INTERNAL_CURRENT_TERM_DECLS.clear %}
-  end
 
-  macro phase(name)
-    private def _internal_phase : String; {{name}}; end
-  end
+    # Register this system within the given World.
+    def register(world : World)
+      desc = LibECS::SystemDesc.new
+      desc.entity.name = self.class.name
+      desc.entity.add_expr = PHASE
+      desc.query.filter.expr = QUERY_STRING
 
-  macro term(decl)
-    struct Iter
-      def get_{{decl.var}}(index : Int32) : {{decl.type}}
-        Pointer(Pointer({{decl.type}})).new(
-          self.to_unsafe.value.ptrs.address
-        )[{{ INTERNAL_CURRENT_TERM_DECLS.size }}][index]
-      end
+      desc.ctx = Box.box(self)
+      desc.callback = ->(iter : LibECS::Iter*) {
+        system = Box(typeof(self)).unbox(iter.value.ctx)
+        system.run(Iter.new(iter))
+      }
+
+      id = LibECS.system_init(world, pointerof(desc))
     end
-
-    {% INTERNAL_CURRENT_TERM_DECLS << decl %}
   end
 end

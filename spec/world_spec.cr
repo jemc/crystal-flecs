@@ -2,8 +2,8 @@ require "./spec_helper"
 
 module Example
   struct Age
-    property age : UInt64 = 0
-    def initialize(@age)
+    property years : UInt64 = 0
+    def initialize(@years)
     end
   end
 
@@ -13,10 +13,13 @@ module Example
     term age : Age
 
     def run(iter)
-      @saw_age = iter.get_age(0).age
+      @total_age = 0
+      iter.each { |row| @total_age += row.age.years }
+      @mean_age = @total_age / iter.count
     end
 
-    property saw_age : UInt64 = 0
+    property total_age : Int32 = 0
+    property mean_age : Float64 = 0
   end
 end
 
@@ -48,7 +51,7 @@ describe World do
     alice = world.entity_init(name: "Alice")
 
     world.set_id(alice, age, Example::Age.new(99_u64))
-    world.get_id(alice, age, Example::Age).age.should eq 99_u64
+    world.get_id(alice, age, Example::Age).years.should eq 99_u64
 
     world.fini
   end
@@ -58,16 +61,20 @@ describe World do
 
     age = world.component_init(name: "Age", size: 8, alignment: 8)
     alice = world.entity_init(name: "Alice")
+    bob = world.entity_init(name: "Bob")
     world.set_id(alice, age, Example::Age.new(99_u64))
+    world.set_id(bob, age, Example::Age.new(88_u64))
 
     system = Example::PrintAge.new
     system.register(world)
 
-    system.saw_age.should eq 0
+    system.total_age.should eq 0
+    system.mean_age.should eq 0
 
     world.progress
 
-    system.saw_age.should eq 99
+    system.total_age.should eq 187
+    system.mean_age.should eq 93.5
 
     world.fini
   end
