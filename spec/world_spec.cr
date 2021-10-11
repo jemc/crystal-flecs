@@ -20,7 +20,7 @@ describe World do
 
     alice = world.entity_init(name: "Alice")
 
-    world.set(alice, WorldSpec::Age.new(99_u64))
+    world.set(alice, WorldSpec::Age[99_u64])
     world.get(alice, WorldSpec::Age).years.should eq 99_u64
   end
 end

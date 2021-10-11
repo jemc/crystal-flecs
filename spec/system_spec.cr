@@ -40,7 +40,7 @@ module SystemExamples
       iter.each { |row| total_age &+= row.age.years }
       mean_age = total_age / iter.count
 
-      iter.stats = AgeStats.new(mean: mean_age, total: total_age)
+      iter.stats = AgeStats[mean: mean_age, total: total_age]
     end
   end
 end
@@ -58,10 +58,10 @@ describe System do
     alice = world.entity_init(name: "Alice")
     bob = world.entity_init(name: "Bob")
 
-    world.set(alice, SystemExamples::Age.new(99_u32))
-    world.set(bob, SystemExamples::Age.new(88_u32))
+    world.set(alice, SystemExamples::Age[99_u32])
+    world.set(bob, SystemExamples::Age[88_u32])
 
-    stats = world.set_singleton(SystemExamples::AgeStats.new)
+    stats = world.set_singleton(SystemExamples::AgeStats[])
     stats.mean.should eq 0
     stats.total.should eq 0
 
