@@ -1,8 +1,9 @@
-@[Link(ldflags: "-L#{__DIR__}/../../vendor -lflecs")]
-lib LibECS
-  fun ecs_strerror(error_code : Int32) : Pointer(UInt8)
-end
+module ECS
+  @[Link(ldflags: "-L#{__DIR__}/../../vendor -lflecs")]
+  lib LibECS
+    type WorldRef = Void*
 
-# This is just a dummy call for now to force Crystal to add our linker flags,
-# just to prove that we can link to the flecs library and invoke it here.
-LibECS.ecs_strerror(1)
+    fun init = ecs_init() : WorldRef
+    fun fini = ecs_fini(world : WorldRef) : Int32
+  end
+end
