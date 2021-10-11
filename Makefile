@@ -6,7 +6,7 @@ vendor/libflecs.a: vendor/flecs.o
 
 .PHONY: spec
 spec: vendor/libflecs.a
-	crystal spec
+	crystal spec --error-trace
 
 .PHONY: spec-lldb
 spec-lldb: vendor/libflecs.a
