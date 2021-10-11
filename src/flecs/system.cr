@@ -57,6 +57,9 @@ module ECS::System::DSL
 
     # Get ready to accumulate query string fragments as terms are declared.
     QUERY_STRING_TERMS = [] of String
+
+    # Get ready to accumulate other things to be registered.
+    ON_REGISTER_HOOKS = [] of World ->
   end
 
   macro phase(name)
@@ -117,6 +120,9 @@ module ECS::System::DSL
     }] #{
       {{ decl.type }}::ECS_NAME
     }"
+
+    # Ensure that the component entity is registered before the system entity.
+    ON_REGISTER_HOOKS << ->(world : World) { {{decl.type}}.register(world) }
   end
 
   macro _dsl_end
@@ -128,6 +134,9 @@ module ECS::System::DSL
 
     # Register this system within the given World.
     def register(world : World)
+      # First register anything the system depends on.
+      ON_REGISTER_HOOKS.each(&.call(world))
+
       desc = LibECS::SystemDesc.new
       desc.entity.name = self.class.name
       desc.entity.add_expr = PHASE

@@ -42,13 +42,6 @@ end
 
 describe System do
   it "can be declared and ran" do
-    SystemExamples::Age.register(world)
-    alice = world.entity_init(name: "Alice")
-    bob = world.entity_init(name: "Bob")
-
-    world.set(alice, SystemExamples::Age.new(99_u32))
-    world.set(bob, SystemExamples::Age.new(88_u32))
-
     SystemExamples::IncrementAge::QUERY_STRING
       .should eq "[inout] SystemExamples__Age"
     SystemExamples::PrintAge::QUERY_STRING
@@ -57,6 +50,12 @@ describe System do
     SystemExamples::IncrementAge.new.register(world)
     system = SystemExamples::PrintAge.new
     system.register(world)
+
+    alice = world.entity_init(name: "Alice")
+    bob = world.entity_init(name: "Bob")
+
+    world.set(alice, SystemExamples::Age.new(99_u32))
+    world.set(bob, SystemExamples::Age.new(88_u32))
 
     system.total_age.should eq 0
     system.mean_age.should eq 0
