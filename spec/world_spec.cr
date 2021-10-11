@@ -9,7 +9,6 @@ module Example
 
   system PrintAge do
     phase "EcsOnLoad"
-    query "Age"
 
     term age : Age
 
