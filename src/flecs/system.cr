@@ -87,7 +87,9 @@ module ECS::System::DSL
             @unsafe.value.ptrs.address
           )[{{ INTERNAL_TERMS_COUNTER.size }}][index] = value
         end
+      {% end %}
 
+      {% if read && write %}
         def update_{{decl.var}}(index : Int32, &block : {{decl.type}} -> {{decl.type}})
           set_{{decl.var}}(index, yield get_{{decl.var}}(index))
         end
@@ -109,7 +111,9 @@ module ECS::System::DSL
             @unsafe.value.ptrs.address
           )[{{ INTERNAL_TERMS_COUNTER.size }}][@index] = value
         end
+      {% end %}
 
+      {% if read && write %}
         def update_{{decl.var}}(&block : {{decl.type}} -> {{decl.type}})
           self.{{decl.var}} = yield self.{{decl.var}}
         end
@@ -150,7 +154,9 @@ module ECS::System::DSL
             @unsafe.value.ptrs.address
           )[{{ INTERNAL_TERMS_COUNTER.size }}].value = value
         end
+      {% end %}
 
+      {% if read && write %}
         def update_{{decl.var}}(&block : {{decl.type}} -> {{decl.type}})
           self.{{decl.var}} = yield self.{{decl.var}}
         end
