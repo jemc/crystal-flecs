@@ -10,4 +10,14 @@ describe World do
 
     world.fini
   end
+
+  it "can create a component and retrieve the same component by name" do
+    world = World.init
+
+    foo = world.component_init(name: "Foo", size: 8, alignment: 8)
+    world.component_init(name: "Foo", size: 8, alignment: 8).should eq foo
+    world.component_init(name: "Bar", size: 8, alignment: 8).should_not eq foo
+
+    world.fini
+  end
 end

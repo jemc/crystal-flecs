@@ -45,6 +45,40 @@ struct ECS::World
     desc.name = name if name
     desc.add_expr = add_expr if add_expr
 
-    LibECS.entity_init(self, pointerof(desc)).to_u64
+    id = LibECS.entity_init(self, pointerof(desc))
+
+    raise Error.new("Failed to initialize entity") \
+      if id == 0
+
+    id
+  end
+
+  # Find or create a component.
+  #
+  # This operation creates a new component, or finds an existing one. The find or
+  # create behavior is the same as ecs_entity_init.
+  #
+  # When an existing component is found, the size and alignment are verified with
+  # the provided values. If the values do not match, the operation will fail.
+  #
+  # See the documentation of ecs_component_desc_t for more details.
+  def component_init(
+    name : String? = nil,
+    add_expr : String? = nil,
+    size : Int32? = nil,
+    alignment : Int32? = nil,
+  ) : UInt64
+    desc = LibECS::ComponentDesc.new
+    desc.entity.name = name if name
+    desc.entity.add_expr = add_expr if add_expr
+    desc.size = size if size
+    desc.alignment = alignment if alignment
+
+    id = LibECS.component_init(self, pointerof(desc))
+
+    raise Error.new("Failed to initialize component") \
+      if id == 0
+
+    id
   end
 end
