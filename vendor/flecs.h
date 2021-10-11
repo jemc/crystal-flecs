@@ -1,6 +1,6 @@
 /**
  * This source code was taken from the following URL:
- * https://raw.githubusercontent.com/SanderMertens/flecs/fc98eff75edfc1df71480bed57ccd13faa036b9f/flecs.h
+ * https://raw.githubusercontent.com/SanderMertens/flecs/9d648ca50790717f362de3bad782e7b83fa9b4e1/flecs.h
  *
  * That repository has the following license:
  *
@@ -77,6 +77,8 @@
 #define FLECS_PIPELINE      /* Pipeline support */
 #define FLECS_TIMER         /* Timer support */
 #define FLECS_META          /* Reflection support */
+#define FLECS_EXPR          /* Parsing strings to/from component values */
+#define FLECS_JSON          /* Parsing JSON to/from component values */
 #endif // ifndef FLECS_CUSTOM_BUILD
 
 /** @} */
@@ -2856,6 +2858,9 @@ extern "C" {
  * cycle detected error */
 #define ECS_MAX_RECURSION (512)
 
+/** Maximum length of a parser token (used by parser-related addons) */
+#define ECS_MAX_TOKEN_SIZE (256)
+
 ////////////////////////////////////////////////////////////////////////////////
 //// Global type handles
 ////////////////////////////////////////////////////////////////////////////////
@@ -2875,11 +2880,6 @@ FLECS_API
 bool ecs_component_has_actions(
     const ecs_world_t *world,
     ecs_entity_t component);
-
-FLECS_API
-void ecs_add_module_tag(
-    ecs_world_t *world,
-    ecs_entity_t module);
 
 ////////////////////////////////////////////////////////////////////////////////
 //// Signature API
@@ -5580,6 +5580,17 @@ bool ecs_term_is_readonly(
     const ecs_iter_t *it,
     int32_t index);
 
+/** Test whether term is set.
+ *
+ * @param it The iterator.
+ * @param index The index of the term in the query.
+ * @param Whether the term is set.
+ */
+FLECS_API
+bool ecs_term_is_set(
+    const ecs_iter_t *it,
+    int32_t index);
+
 /** Test whether the term is owned
  * This operation returns whether the term is owned by the currently iterated
  * entity. This function will return false when the term is owned by another
@@ -7080,6 +7091,134 @@ void FlecsTimerImport(
 #define FLECS_MODULE
 #endif
 
+/**
+ * @file hashmap.h
+ * @brief Hashmap datastructure.
+ *
+ * Datastructure that computes a hash to store & retrieve values. Similar to
+ * ecs_map_t, but allows for arbitrary keytypes.
+ */
+
+#ifndef FLECS_HASHMAP_H
+#define FLECS_HASHMAP_H
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef struct {
+    ecs_hash_value_action_t hash;
+    ecs_compare_action_t compare;
+    ecs_size_t key_size;
+    ecs_size_t value_size;
+    ecs_map_t *impl;
+} ecs_hashmap_t;
+
+typedef struct {
+    ecs_map_iter_t it;
+    struct ecs_hm_bucket_t *bucket;
+    int32_t index;
+} flecs_hashmap_iter_t;
+
+typedef struct {
+    void *key;
+    void *value;
+    uint64_t hash;
+} flecs_hashmap_result_t;
+
+FLECS_DBG_API
+ecs_hashmap_t _flecs_hashmap_new(
+    ecs_size_t key_size,
+    ecs_size_t value_size,
+    ecs_hash_value_action_t hash,
+    ecs_compare_action_t compare);
+
+#define flecs_hashmap_new(K, V, compare, hash)\
+    _flecs_hashmap_new(ECS_SIZEOF(K), ECS_SIZEOF(V), compare, hash)
+
+FLECS_DBG_API
+void flecs_hashmap_free(
+    ecs_hashmap_t map);
+
+FLECS_DBG_API
+void* _flecs_hashmap_get(
+    const ecs_hashmap_t map,
+    ecs_size_t key_size,
+    const void *key,
+    ecs_size_t value_size);
+
+#define flecs_hashmap_get(map, key, V)\
+    (V*)_flecs_hashmap_get(map, ECS_SIZEOF(*key), key, ECS_SIZEOF(V))
+
+FLECS_DBG_API
+flecs_hashmap_result_t _flecs_hashmap_ensure(
+    const ecs_hashmap_t map,
+    ecs_size_t key_size,
+    void *key,
+    ecs_size_t value_size);
+
+#define flecs_hashmap_ensure(map, key, V)\
+    _flecs_hashmap_ensure(map, ECS_SIZEOF(*key), key, ECS_SIZEOF(V))
+
+FLECS_DBG_API
+void _flecs_hashmap_set(
+    const ecs_hashmap_t map,
+    ecs_size_t key_size,
+    void *key,
+    ecs_size_t value_size,
+    const void *value);
+
+#define flecs_hashmap_set(map, key, value)\
+    _flecs_hashmap_set(map, ECS_SIZEOF(*key), key, ECS_SIZEOF(*value), value)
+
+FLECS_DBG_API
+void _flecs_hashmap_remove(
+    const ecs_hashmap_t map,
+    ecs_size_t key_size,
+    const void *key,
+    ecs_size_t value_size);
+
+#define flecs_hashmap_remove(map, key, V)\
+    _flecs_hashmap_remove(map, ECS_SIZEOF(*key), key, ECS_SIZEOF(V))
+
+FLECS_DBG_API
+void _flecs_hashmap_remove_w_hash(
+    const ecs_hashmap_t map,
+    ecs_size_t key_size,
+    const void *key,
+    ecs_size_t value_size,
+    uint64_t hash);
+
+#define flecs_hashmap_remove_w_hash(map, key, V, hash)\
+    _flecs_hashmap_remove_w_hash(map, ECS_SIZEOF(*key), key, ECS_SIZEOF(V), hash)
+
+FLECS_DBG_API
+ecs_hashmap_t flecs_hashmap_copy(
+    const ecs_hashmap_t src);
+
+FLECS_DBG_API
+flecs_hashmap_iter_t flecs_hashmap_iter(
+    ecs_hashmap_t map);
+
+FLECS_DBG_API
+void* _flecs_hashmap_next(
+    flecs_hashmap_iter_t *it,
+    ecs_size_t key_size,
+    void *key_out,
+    ecs_size_t value_size);
+
+#define flecs_hashmap_next(map, V)\
+    (V*)_flecs_hashmap_next(map, 0, NULL, ECS_SIZEOF(V))
+
+#define flecs_hashmap_next_w_key(map, K, key, V)\
+    (V*)_flecs_hashmap_next(map, ECS_SIZEOF(K), key, ECS_SIZEOF(V))
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
 
 #ifndef FLECS_META_H
 #define FLECS_META_H
@@ -7088,7 +7227,7 @@ void FlecsTimerImport(
 extern "C" {
 #endif
 
-#define ECS_MEMBER_DESC_CACHE_SIZE (16)
+#define ECS_MEMBER_DESC_CACHE_SIZE (32)
 
 /** Primitive type definitions.
  * These typedefs allow the builtin primitives to be used as regular components:
@@ -7192,7 +7331,7 @@ typedef struct EcsMember {
 /* Element type of members vector in EcsStruct */
 typedef struct ecs_member_t {
     /* Must be set when used with ecs_struct_desc_t */
-    char *name;
+    const char *name;
     ecs_entity_t type;
 
     /* May be set when used with ecs_struct_desc_t */
@@ -7211,7 +7350,7 @@ typedef struct EcsStruct {
 
 typedef struct ecs_enum_constant_t {
     /* Must be set when used with ecs_enum_desc_t */
-    char *name;
+    const char *name;
 
     /* May be set when used with ecs_enum_desc_t */
     int32_t value;
@@ -7227,7 +7366,7 @@ typedef struct EcsEnum {
 
 typedef struct ecs_bitmask_constant_t {
     /* Must be set when used with ecs_bitmask_desc_t */
-    char *name;
+    const char *name;
 
     /* May be set when used with ecs_bitmask_desc_t */
     ecs_flags32_t value;
@@ -7284,15 +7423,17 @@ typedef enum ecs_meta_type_op_kind_t {
 
 typedef struct ecs_meta_type_op_t {
     ecs_meta_type_op_kind_t kind;
-    ecs_size_t offset;    /* Offset of current field */
+    ecs_size_t offset;      /* Offset of current field */
     int32_t count;
-    int32_t op_count;     /* Number of operations until next field or end */
-    const char *name;     /* Name of value (only used for struct members) */
+    const char *name;       /* Name of value (only used for struct members) */
+    int32_t op_count;       /* Number of operations until next field or end */
+    ecs_size_t size;        /* Size of type of operation */
     ecs_entity_t type;
+    ecs_hashmap_t *members; /* string -> member index (structs only) */
 } ecs_meta_type_op_t;
 
 typedef struct EcsMetaTypeSerialized {
-    ecs_vector_t* ops;    /* vector<ecs_meta_type_op_t> */
+    ecs_vector_t* ops;     /* vector<ecs_meta_type_op_t> */
 } EcsMetaTypeSerialized;
 
 
@@ -7319,6 +7460,11 @@ typedef struct ecs_meta_cursor_t {
     const ecs_world_t *world;
     ecs_meta_scope_t scope[ECS_META_MAX_SCOPE_DEPTH];
     int32_t depth;
+    bool valid;
+
+    /* Custom entity lookup action for overriding default ecs_lookup_fullpath */
+    ecs_entity_t (*lookup_action)(const ecs_world_t*, const char*, void*);
+    void *lookup_ctx;
 } ecs_meta_cursor_t;
 
 FLECS_API
@@ -7359,6 +7505,10 @@ FLECS_API
 int ecs_meta_pop(
     ecs_meta_cursor_t *cursor);
 
+/** Is the current scope a collection? */
+FLECS_API
+int ecs_meta_is_collection(
+    ecs_meta_cursor_t *cursor);
 
 /** The set functions assign the field with the specified value. If the value
  * does not have the same type as the field, it will be cased to the field type.
@@ -7397,6 +7547,12 @@ int ecs_meta_set_float(
 /** Set field with string value */
 FLECS_API
 int ecs_meta_set_string(
+    ecs_meta_cursor_t *cursor,
+    const char *value);
+
+/** Set field with string literal value (has enclosing "") */
+FLECS_API
+int ecs_meta_set_string_literal(
     ecs_meta_cursor_t *cursor,
     const char *value);
 
@@ -7500,6 +7656,411 @@ void FlecsMetaImport(
 
 #endif
 #endif
+#ifdef FLECS_EXPR
+/**
+ * @file expr.h
+ * @brief Flecs expression parser addon.
+ *
+ * Parse expression strings into component values. The notation is similar to
+ * JSON but with a smaller footprint, native support for (large) integer types,
+ * character types, enumerations, bitmasks and entity identifiers.
+ *
+ * Examples:
+ *
+ * Member names:
+ *   {x: 10, y: 20}
+ *
+ * No member names (uses member ordering):
+ *   {10, 20}
+ *
+ * Enum values:
+ *   {color: Red}
+ *
+ * Bitmask values:
+ *   {toppings: Lettuce|Tomato}
+ *
+ * Collections:
+ *   {points: [10, 20, 30]}
+ *
+ * Nested objects:
+ *   {start: {x: 10, y: 20}, stop: {x: 30, y: 40}}
+ *
+ */
+
+#ifdef FLECS_EXPR
+
+#ifndef FLECS_META
+#define FLECS_META
+#endif
+
+#ifndef FLECS_PARSER
+#define FLECS_PARSER
+#endif
+
+/**
+ * @file parser.h
+ * @brief Parser addon.
+ *
+ * The parser addon parses string expressions into lists of terms, and can be
+ * used to construct filters, queries and types.
+ */
+
+#ifdef FLECS_PARSER
+
+#ifndef FLECS_PARSER_H
+#define FLECS_PARSER_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/** Skip whitespace characters.
+ * This function skips whitespace characters. Does not skip newlines.
+ *
+ * @param expr pointer to (potential) whitespaces to skip.
+ * @return pointer to the next non-whitespace character.
+ */
+FLECS_API
+const char* ecs_parse_whitespace(
+    const char *ptr);
+
+/** Skip whitespaces and comments.
+ * This function skips whitespace characters and comments (single line, //).
+ *
+ * @param expr pointer to (potential) whitespaces/comments to skip.
+ * @return pointer to the next non-whitespace character.
+ */
+FLECS_API
+const char* ecs_parse_fluff(
+    const char *ptr);
+
+/** Parse a single token.
+ * This function can be used as simple tokenizer by other parsers.
+ *
+ * @param name of program (used for logging).
+ * @param expr pointer to token to parse.
+ * @param ptr pointer to first character to parse.
+ * @param token_out Parsed token (buffer should be ECS_MAX_TOKEN_SIZE large)
+ * @return Pointer to the next token, or NULL if error occurred.
+ */
+FLECS_API
+const char* ecs_parse_token(
+    const char *name,
+    const char *expr,
+    const char *ptr,
+    char *token_out);
+
+/** Parse term in expression.
+ * This operation parses a single term in an expression and returns a pointer
+ * to the next term expression.
+ *
+ * If the returned pointer points to the 0-terminator, the expression is fully
+ * parsed. The function would typically be called in a while loop:
+ *
+ * const char *ptr = expr;
+ * while (ptr[0] && (ptr = ecs_parse_term(world, name, expr, ptr, &term))) { }
+ *
+ * The operation does not attempt to find entity ids from the names in the
+ * expression. Use the ecs_term_resolve_ids function to resolve the identifiers
+ * in the parsed term.
+ *
+ * The returned term will in most cases contain allocated resources, which
+ * should freed (or used) by the application. To free the resources for a term,
+ * use the ecs_term_free function.
+ *
+ * The parser accepts expressions in the legacy string format.
+ *
+ * @param world The world.
+ * @param name The name of the expression (optional, improves error logs)
+ * @param expr The expression to parse (optional, improves error logs)
+ * @param ptr The pointer to the current term (must be in expr).
+ * @param term_out Out parameter for the term.
+ * @return pointer to next term if successful, NULL if failed.
+ */
+FLECS_API
+char* ecs_parse_term(
+    const ecs_world_t *world,
+    const char *name,
+    const char *expr,
+    const char *ptr,
+    ecs_term_t *term_out);
+
+#ifdef __cplusplus
+}
+#endif // __cplusplus
+
+#endif // FLECS_PARSER_H
+
+#endif // FLECS_PARSER
+
+#ifndef FLECS_EXPR_H
+#define FLECS_EXPR_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/** Write an escaped character.
+ * Write a character to an output string, insert escape character if necessary.
+ *
+ * @param out The string to write the character to.
+ * @param in The input character.
+ * @param delimiter The delimiiter used (for example '"')
+ * @return Pointer to the character after the last one written.
+ */
+FLECS_API
+char* ecs_chresc(
+    char *out,
+    char in,
+    char delimiter);
+
+/** Parse an escaped character.
+ * Parse a character with a potential escape sequence.
+ *
+ * @param in Pointer to character in input string.
+ * @param out Output string.
+ * @return Pointer to the character after the last one read.
+ */
+const char* ecs_chrparse(
+    const char *in,
+    char *out);
+
+/** Write an escaped string.
+ * Write an input string to an output string, escape characters where necessary.
+ * To determine the size of the output string, call the operation with a NULL
+ * argument for 'out', and use the returned size to allocate a string that is
+ * large enough.
+ *
+ * @param out Pointer to output string (msut be).
+ * @param size Maximum number of characters written to output.
+ * @param delimiter The delimiter used (for example '"').
+ * @param in The input string.
+ * @return The number of characters that (would) have been written.
+ */
+FLECS_API
+ecs_size_t ecs_stresc(
+    char *out,
+    ecs_size_t size,
+    char delimiter,
+    const char *in);
+
+/** Used with ecs_parse_expr. */
+typedef struct ecs_expr_desc_t {
+    const char *name;
+    const char *expr;
+    ecs_entity_t (*lookup_action)(
+        const ecs_world_t*,
+        const char *value,
+        void *ctx);
+    void *lookup_ctx;
+} ecs_expr_desc_t;
+
+/** Parse expression into value.
+ * This operation parses a flecs expression into the provided pointer. The
+ * memory pointed to must be large enough to contain a value of the used type.
+ *
+ * @param world The world.
+ * @param name The name of the expression (used for debug logs).
+ * @param expr The full expression (used for debug logs).
+ * @param ptr The pointer to the expression to parse.
+ * @param type The type of the expression to parse.
+ * @param data_out Pointer to the memory to write to.
+ * @return Pointer to the character after the last one read, or NULL if failed.
+ */
+FLECS_API
+const char* ecs_parse_expr(
+    const ecs_world_t *world,
+    const char *ptr,
+    ecs_entity_t type,
+    void *data_out,
+    const ecs_expr_desc_t *desc);
+
+/** Serialize value into expression string.
+ * This operation serializes a value of the provided type to a string. The
+ * memory pointed to must be large enough to contain a value of the used type.
+ *
+ * @param world The world.
+ * @param type The type of the value to serialize.
+ * @param data The value to serialize.
+ * @return String with expression, or NULL if failed.
+ */
+FLECS_API
+char* ecs_ptr_to_expr(
+    const ecs_world_t *world,
+    ecs_entity_t type,
+    const void *data);
+
+/** Serialize value into string buffer.
+ * Same as ecs_ptr_to_expr, but serializes to an ecs_strbuf_t instance.
+ *
+ * @param world The world.
+ * @param type The type of the value to serialize.
+ * @param data The value to serialize.
+ * @param buf_out The strbuf to append the string to.
+ * @return Zero if success, non-zero if failed.
+ */
+FLECS_API
+int ecs_ptr_to_expr_buf(
+    const ecs_world_t *world,
+    ecs_entity_t type,
+    const void *data,
+    ecs_strbuf_t *buf_out);
+
+/** Serialize primitive value into string buffer.
+ * Serializes a primitive value to an ecs_strbuf_t instance. This operation can
+ * be reused by other serializers to avoid having to write boilerplate code that
+ * serializes primitive values to a string.
+ *
+ * @param world The world.
+ * @param kind The kind of primitive value.
+ * @param data The value ot serialize
+ * @param buf_out The strbuf to append the string to.
+ * @return Zero if success, non-zero if failed.
+ */
+FLECS_API
+int ecs_primitive_to_expr_buf(
+    const ecs_world_t *world,
+    ecs_primitive_kind_t kind,
+    const void *data,
+    ecs_strbuf_t *str);
+
+/** Parse expression token.
+ * Expression tokens can contain more characters (such as '|') than tokens
+ * parsed by the query (term) parser.
+ *
+ * @param name The name of the expression (used for debug logs).
+ * @param expr The full expression (used for debug logs).
+ * @param ptr The pointer to the expression to parse.
+ * @param token The buffer to write to (must have size ECS_MAX_TOKEN_SIZE)
+ * @return Pointer to the character after the last one read, or NULL if failed.
+ */
+FLECS_API
+const char *ecs_parse_expr_token(
+    const char *name,
+    const char *expr,
+    const char *ptr,
+    char *token);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+
+#endif
+#endif
+#ifdef FLECS_JSON
+/**
+ * @file json.h
+ * @brief JSON parser addon.
+ *
+ * Parse expression strings into component values. Entity identifiers,
+ * enumerations and bitmasks are encoded as strings.
+ */
+
+#ifdef FLECS_JSON
+
+#ifndef FLECS_EXPR
+#define FLECS_EXPR
+#endif
+
+
+#ifndef FLECS_JSON_H
+#define FLECS_JSON_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/** Parse JSON string into value.
+ * This operation parses a JSON expression into the provided pointer. The
+ * memory pointed to must be large enough to contain a value of the used type.
+ *
+ * @param world The world.
+ * @param name The name of the expression (used for debug logs).
+ * @param expr The full expression (used for debug logs).
+ * @param ptr The pointer to the expression to parse.
+ * @param type The type of the expression to parse.
+ * @param data_out Pointer to the memory to write to.
+ * @return Pointer to the character after the last one read, or NULL if failed.
+ */
+FLECS_API
+const char* ecs_parse_json(
+    const ecs_world_t *world,
+    const char *name,
+    const char *expr,
+    const char *ptr,
+    ecs_entity_t type,
+    void *data_out);
+
+/** Serialize value into JSON string.
+ * This operation serializes a value of the provided type to a JSON string. The
+ * memory pointed to must be large enough to contain a value of the used type.
+ *
+ * @param world The world.
+ * @param type The type of the value to serialize.
+ * @param data The value to serialize.
+ * @return String with JSON expression, or NULL if failed.
+ */
+FLECS_API
+char* ecs_ptr_to_json(
+    const ecs_world_t *world,
+    ecs_entity_t type,
+    const void *data);
+
+/** Serialize value into JSON string buffer.
+ * Same as ecs_ptr_to_json, but serializes to an ecs_strbuf_t instance.
+ *
+ * @param world The world.
+ * @param type The type of the value to serialize.
+ * @param data The value to serialize.
+ * @param buf_out The strbuf to append the string to.
+ * @return Zero if success, non-zero if failed.
+ */
+FLECS_API
+int ecs_ptr_to_json_buf(
+    const ecs_world_t *world,
+    ecs_entity_t type,
+    const void *data,
+    ecs_strbuf_t *buf_out);
+
+/** Serialize entity into JSON string.
+ * This creates a JSON object with the entity's (path) name, which components
+ * and tags the entity has, and the component values.
+ *
+ * The operation may fail if the entity contains components with invalid values.
+ *
+ * @param world The world.
+ * @param entity The entity to serialize to JSON.
+ * @return A JSON string with the serialized entity data, or NULL if failed.
+ */
+FLECS_API
+char* ecs_entity_to_json(
+    const ecs_world_t *world,
+    ecs_entity_t entity);
+
+/** Serialize entity into JSON string buffer.
+ * Same as ecs_entity_to_json, but serializes to an ecs_strbuf_t instance.
+ *
+ * @param world The world.
+ * @param entity The entity to serialize.
+ * @param buf_out The strbuf to append the string to.
+ * @return Zero if success, non-zero if failed.
+ */
+FLECS_API
+int ecs_entity_to_json_buf(
+    const ecs_world_t *world,
+    ecs_entity_t entity,
+    ecs_strbuf_t *buf_out);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+
+#endif
+#endif
 #ifdef FLECS_MODULE
 #endif
 #ifdef FLECS_PLECS
@@ -7585,65 +8146,6 @@ int ecs_plecs_from_file(
 #endif
 #endif
 #ifdef FLECS_PARSER
-/**
- * @file parser.h
- * @brief Parser addon.
- *
- * The parser addon parses string expressions into lists of terms, and can be
- * used to construct filters, queries and types.
- */
-
-#ifdef FLECS_PARSER
-
-#ifndef FLECS_PARSER_H
-#define FLECS_PARSER_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-/** Parse term in expression.
- * This operation parses a single term in an expression and returns a pointer
- * to the next term expression.
- *
- * If the returned pointer points to the 0-terminator, the expression is fully
- * parsed. The function would typically be called in a while loop:
- *
- * const char *ptr = expr;
- * while (ptr[0] && (ptr = ecs_parse_term(world, name, expr, ptr, &term))) { }
- *
- * The operation does not attempt to find entity ids from the names in the
- * expression. Use the ecs_term_resolve_ids function to resolve the identifiers
- * in the parsed term.
- *
- * The returned term will in most cases contain allocated resources, which
- * should freed (or used) by the application. To free the resources for a term,
- * use the ecs_term_free function.
- *
- * The parser accepts expressions in the legacy string format.
- *
- * @param world The world.
- * @param name The name of the expression (optional, improves error logs)
- * @param expr The expression to parse (optional, improves error logs)
- * @param ptr The pointer to the current term (must be in expr).
- * @param term_out Out parameter for the term.
- * @return pointer to next term if successful, NULL if failed.
- */
-FLECS_API
-char* ecs_parse_term(
-    const ecs_world_t *world,
-    const char *name,
-    const char *expr,
-    const char *ptr,
-    ecs_term_t *term_out);
-
-#ifdef __cplusplus
-}
-#endif // __cplusplus
-
-#endif // FLECS_PARSER_H
-
-#endif // FLECS_PARSER
 #endif
 #ifdef FLECS_RULES
 
@@ -8334,9 +8836,6 @@ FLECS_API void ecs_gauge_reduce(
 
 #define ecs_term_size(it, index)\
     ((index) == 0 ? sizeof(ecs_entity_t) : ECS_CAST(size_t, (it)->sizes[(index) - 1]))
-
-#define ecs_term_is_set(it, index)\
-    ((it)->columns[(index) - 1] != 0)
 
 #define ecs_term_is_owned(it, index)\
     ((it)->subjects == NULL || (it)->subjects[(index) - 1] == 0)
@@ -9735,24 +10234,6 @@ public:
         return ECS_OFFSET(m_array, m_size * index);
     }
 
-    /** Return whether component is set.
-     * If the column is optional, this method may return false.
-     *
-     * @return True if component is set, false if component is not set.
-     */
-    bool is_set() const {
-        return m_array != nullptr;
-    }
-
-    /** Return whether component is shared.
-     * If the column is shared, this method returns true.
-     *
-     * @return True if component is shared, false if component is owned.
-     */
-    bool is_shared() const {
-        return m_is_shared;
-    }
-
 protected:
     void* m_array;
     size_t m_size;
@@ -9819,33 +10300,6 @@ public:
     T* operator->() {
         ecs_assert(m_array != nullptr, ECS_COLUMN_INDEX_OUT_OF_RANGE, NULL);
         return m_array;
-    }
-
-    /** Return whether component is set.
-     * If the column is optional, this method may return false.
-     *
-     * @return True if component is set, false if component is not set.
-     */
-    bool is_set() const {
-        return m_array != nullptr;
-    }
-
-    /** Return whether component is shared.
-     * If the column is shared, this method returns true.
-     *
-     * @return True if component is shared, false if component is owned.
-     */
-    bool is_shared() const {
-        return m_is_shared;
-    }
-
-    /** Return whether component is owned.
-     * If the column is shared, this method returns true.
-     *
-     * @return True if component is shared, false if component is owned.
-     */
-    bool is_owned() const {
-        return !m_is_shared;
     }
 
 protected:
@@ -10987,13 +11441,8 @@ public:
     }
 
     /** Delete all entities with specified id. */
-<<<<<<< HEAD
     void delete_with(id_t the_id) const {
         ecs_delete_with(m_world, the_id);
-=======
-    void delete_with(id_t id) const {
-        ecs_delete_with(m_world, id);
->>>>>>> 94c041c3... #496 implement deferred op for delete_with/remove_all, add to c++
     }
 
     /** Delete all entities with specified relation. */
@@ -11014,13 +11463,8 @@ public:
     }
 
     /** Remove all instances of specified id. */
-<<<<<<< HEAD
     void remove_all(id_t the_id) const {
         ecs_remove_all(m_world, the_id);
-=======
-    void remove_all(id_t id) const {
-        ecs_remove_all(m_world, id);
->>>>>>> 94c041c3... #496 implement deferred op for delete_with/remove_all, add to c++
     }
 
     /** Remove all instances of specified relation. */
@@ -14529,9 +14973,9 @@ public:
      * @param rank The rank action.
      */
     template <typename T>
-    Base& group_by(int(*rank)(flecs::world_t*, flecs::entity_t, flecs::type_t type)) {
+    Base& group_by(uint64_t(*rank)(flecs::world_t*, flecs::type_t type, flecs::id_t id, void* ctx)) {
         ecs_group_by_action_t rnk = reinterpret_cast<ecs_group_by_action_t>(rank);
-        return this->group_by(_::cpp_type<T>::id(this->m_world), rnk);
+        return this->group_by(_::cpp_type<T>::id(world()), rnk);
     }
 
     /** Group and sort matched tables.
@@ -14540,7 +14984,7 @@ public:
      * @param component The component used to determine the group rank.
      * @param rank The rank action.
      */
-    Base& group_by(flecs::entity_t component, int(*rank)(flecs::world_t*, flecs::entity_t, flecs::type_t type)) {
+    Base& group_by(flecs::entity_t component, uint64_t(*rank)(flecs::world_t*, flecs::type_t type, flecs::id_t id, void* ctx)) {
         m_desc->group_by = reinterpret_cast<ecs_group_by_action_t>(rank);
         m_desc->group_by_id = component;
         return *this;
@@ -15276,7 +15720,7 @@ ecs_entity_t do_import(world& world, const char *symbol) {
     // Initialize module component type & don't allow it to be registered as a
     // tag, as this would prevent calling emplace()
     auto m_c = component<T>(world, nullptr, false);
-    ecs_add_module_tag(world, m_c);
+    ecs_add_id(world, m_c, EcsModule);
 
     world.emplace<T>(world);
 
