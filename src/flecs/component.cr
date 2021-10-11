@@ -14,9 +14,9 @@ module ECS::Component::DSL
   macro _dsl_end(name)
     {% ecs_name = name.resolve.id.gsub(/:/, "_") %}
     ECS_NAME = "{{ecs_name}}"
-    @@ecs_id = 0_u64
 
     class ::ECS::World::Root
+      # The id of the {{name}} component is stored here in the World Root.
       property _id_for_{{ecs_name}} = 0_u64
     end
 

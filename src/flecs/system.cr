@@ -9,13 +9,13 @@ end
 
 module ECS::System::DSL
   # Hold some temporary state held in mutable DSL "constants".
-  INTERNAL_CURRENT_TERM_DECLS = [] of _
+  INTERNAL_TERMS_COUNTER = [] of Nil
 
   macro _dsl_begin
     # Ensure that temporary state in mutable DSL "constants" is clear.
     {%
       raise "Can't declare a system inside a system" \
-        unless INTERNAL_CURRENT_TERM_DECLS.empty?
+        unless INTERNAL_TERMS_COUNTER.empty?
     %}
 
     struct Iter
@@ -54,6 +54,9 @@ module ECS::System::DSL
         end
       end
     end
+
+    # Get ready to accumulate query string fragments as terms are declared.
+    QUERY_STRING_TERMS = [] of String
   end
 
   macro phase(name)
@@ -65,7 +68,7 @@ module ECS::System::DSL
       def get_{{decl.var}}(index : Int32) : {{decl.type}}
         Pointer(Pointer({{decl.type}})).new(
           @unsafe.value.ptrs.address
-        )[{{ INTERNAL_CURRENT_TERM_DECLS.size }}][index]
+        )[{{ INTERNAL_TERMS_COUNTER.size }}][index]
       end
     end
 
@@ -73,26 +76,21 @@ module ECS::System::DSL
       def {{decl.var}} : {{decl.type}}
         Pointer(Pointer({{decl.type}})).new(
           @unsafe.value.ptrs.address
-        )[{{ INTERNAL_CURRENT_TERM_DECLS.size }}][@index]
+        )[{{ INTERNAL_TERMS_COUNTER.size }}][@index]
       end
     end
 
-    {% INTERNAL_CURRENT_TERM_DECLS << decl %}
+    {% INTERNAL_TERMS_COUNTER << nil %}
+
+    QUERY_STRING_TERMS << {{ decl.type }}::ECS_NAME
   end
 
   macro _dsl_end
     # Define the query string based on the declared terms.
-    QUERY_STRING =
-      {% begin %}
-        [
-          {% for term_decl in INTERNAL_CURRENT_TERM_DECLS %}
-            {{ term_decl.type }}::ECS_NAME
-          {% end %}
-        ].join(", ")
-      {% end %}
+    QUERY_STRING = QUERY_STRING_TERMS.join(", ")
 
     # Clear temporary state held in mutable DSL "constants".
-    {% INTERNAL_CURRENT_TERM_DECLS.clear %}
+    {% INTERNAL_TERMS_COUNTER.clear %}
 
     # Register this system within the given World.
     def register(world : World)
