@@ -1,7 +1,18 @@
 struct ECS::World
+  # This is our internal mutable state container for the world, where we will
+  # put anything we need to access from Crystal which isn't in flecs.
+  #
+  # In it, we can store the equivalent of global variables as properties.
+  #
+  # These properties are not truly global because each World has its own Root.
+  # The properties will be defined in other files, often from within macros.
+  class Root
+  end
+
   @unsafe : LibECS::WorldRef
+  getter root : ECS::World::Root
   def to_unsafe; @unsafe end
-  def initialize(@unsafe)
+  def initialize(@unsafe, @root)
   end
 
   # Create a new world.
@@ -12,7 +23,7 @@ struct ECS::World
   #
   # This operation creates a world with all builtin modules loaded.
   def self.init
-    new(LibECS.init)
+    new(LibECS.init, Root.new)
   end
 
   # Delete a world.
@@ -53,41 +64,17 @@ struct ECS::World
     id
   end
 
-  # Find or create a component.
-  #
-  # This operation creates a new component, or finds an existing one. The find or
-  # create behavior is the same as ecs_entity_init.
-  #
-  # When an existing component is found, the size and alignment are verified with
-  # the provided values. If the values do not match, the operation will fail.
-  #
-  # See the documentation of ecs_component_desc_t for more details.
-  def component_init(
-    name : String? = nil,
-    add_expr : String? = nil,
-    size : Int32? = nil,
-    alignment : Int32? = nil,
-  ) : UInt64
-    desc = LibECS::ComponentDesc.new
-    desc.entity.name = name if name
-    desc.entity.add_expr = add_expr if add_expr
-    desc.size = size if size
-    desc.alignment = alignment if alignment
-
-    id = LibECS.component_init(self, pointerof(desc))
-
-    raise Error.new("Failed to initialize component") \
-      if id == 0
-
-    id
-  end
-
   # Get an immutable pointer to a component.
   #
   # This operation obtains a const pointer to the requested component. The
   # operation accepts the component entity id.
   def get_id(entity : UInt64, id : UInt64, c : T.class) forall T
     Pointer(T).new(LibECS.get_id(self, entity, id).address).value
+  end
+
+  # Convenience wrapper for get_id for when component implements the id method.
+  def get(entity : UInt64, component_class : T.class) forall T
+    get_id(entity, component_class.id(self), component_class)
   end
 
   # Set the value of a component.
@@ -98,6 +85,11 @@ struct ECS::World
   # If the provided entity is 0, a new entity will be created.
   def set_id(entity : UInt64, id : UInt64, c : T) forall T
     LibECS.set_id(self, entity, id, sizeof(T), pointerof(c))
+  end
+
+  # Convenience wrapper for set_id for when component implements the id method.
+  def set(entity : UInt64, component : T) forall T
+    set_id(entity, component.class.id(self), component)
   end
 
   # Progress a world.

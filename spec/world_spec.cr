@@ -1,7 +1,7 @@
 require "./spec_helper"
 
 module Example
-  struct Age
+  component Age do
     property years : UInt64 = 0
     def initialize(@years)
     end
@@ -34,24 +34,14 @@ describe World do
     world.fini
   end
 
-  it "can create a component and retrieve the same component by name" do
-    world = World.init
-
-    foo = world.component_init(name: "Foo", size: 8, alignment: 8)
-    world.component_init(name: "Foo", size: 8, alignment: 8).should eq foo
-    world.component_init(name: "Bar", size: 8, alignment: 8).should_not eq foo
-
-    world.fini
-  end
-
   it "can set and get the value of a component on an entity" do
     world = World.init
+    Example::Age.register(world)
 
-    age = world.component_init(name: "Age", size: 8, alignment: 8)
     alice = world.entity_init(name: "Alice")
 
-    world.set_id(alice, age, Example::Age.new(99_u64))
-    world.get_id(alice, age, Example::Age).years.should eq 99_u64
+    world.set(alice, Example::Age.new(99_u64))
+    world.get(alice, Example::Age).years.should eq 99_u64
 
     world.fini
   end
@@ -59,11 +49,12 @@ describe World do
   it "can run a system" do
     world = World.init
 
-    age = world.component_init(name: "Age", size: 8, alignment: 8)
+    Example::Age.register(world)
     alice = world.entity_init(name: "Alice")
     bob = world.entity_init(name: "Bob")
-    world.set_id(alice, age, Example::Age.new(99_u64))
-    world.set_id(bob, age, Example::Age.new(88_u64))
+
+    world.set(alice, Example::Age.new(99_u64))
+    world.set(bob, Example::Age.new(88_u64))
 
     system = Example::PrintAge.new
     system.register(world)

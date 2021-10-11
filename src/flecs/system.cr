@@ -86,7 +86,7 @@ module ECS::System::DSL
       {% begin %}
         [
           {% for term_decl in INTERNAL_CURRENT_TERM_DECLS %}
-            "#{{{ term_decl.type }}}".split("::").last
+            {{ term_decl.type }}::ECS_NAME
           {% end %}
         ].join(", ")
       {% end %}
