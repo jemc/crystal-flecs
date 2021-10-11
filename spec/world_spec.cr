@@ -1,6 +1,6 @@
 require "./spec_helper"
 
-module WorldSpec
+module WorldExamples
   component Age do
     property years : UInt64 = 0
     def initialize(@years)
@@ -16,11 +16,11 @@ describe World do
   end
 
   it "can set and get the value of a component on an entity" do
-    WorldSpec::Age.register(world)
+    WorldExamples::Age.register(world)
 
     alice = world.entity_init(name: "Alice")
 
-    world.set(alice, WorldSpec::Age[99_u64])
-    world.get(alice, WorldSpec::Age).years.should eq 99_u64
+    world.set(alice, WorldExamples::Age[99_u64])
+    world.get(alice, WorldExamples::Age).years.should eq 99_u64
   end
 end
