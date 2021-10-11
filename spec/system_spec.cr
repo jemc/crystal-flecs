@@ -42,8 +42,6 @@ end
 
 describe System do
   it "can be declared and ran" do
-    world = World.init
-
     SystemExamples::Age.register(world)
     alice = world.entity_init(name: "Alice")
     bob = world.entity_init(name: "Bob")
@@ -72,7 +70,5 @@ describe System do
 
     system.total_age.should eq 191
     system.mean_age.should eq 95.5
-
-    world.fini
   end
 end
