@@ -2,9 +2,15 @@ require "./spec_helper"
 
 module SystemExamples
   component Age do
-    property years : UInt32 = 0
-    property other_years : UInt32 = 0
+    property years : UInt32
     def initialize(@years)
+    end
+  end
+
+  component AgeStats do
+    property mean : Float64
+    property total : UInt32
+    def initialize(@mean = 0_f64, @total = 0_u32)
     end
   end
 
@@ -17,26 +23,25 @@ module SystemExamples
       iter.each { |row|
         row.update_age { |age|
           age.years &+= 1
-          age.other_years &+= 1
           age
         }
       }
     end
   end
 
-  system PrintAge do
+  system SurveyAge do
     phase "EcsOnStore"
 
     term age : Age
+    singleton stats : AgeStats, write: true, read: false
 
     def run(iter)
-      @total_age = 0
-      iter.each { |row| @total_age &+= row.age.years }
-      @mean_age = @total_age / iter.count
-    end
+      total_age = 0_u32
+      iter.each { |row| total_age &+= row.age.years }
+      mean_age = total_age / iter.count
 
-    property total_age : Int32 = 0
-    property mean_age : Float64 = 0
+      iter.stats = AgeStats.new(mean: mean_age, total: total_age)
+    end
   end
 end
 
@@ -44,12 +49,11 @@ describe System do
   it "can be declared and ran" do
     SystemExamples::IncrementAge::QUERY_STRING
       .should eq "[inout] SystemExamples__Age"
-    SystemExamples::PrintAge::QUERY_STRING
-      .should eq "[in] SystemExamples__Age"
+    SystemExamples::SurveyAge::QUERY_STRING
+      .should eq "[in] SystemExamples__Age, [out] $SystemExamples__AgeStats"
 
     SystemExamples::IncrementAge.new.register(world)
-    system = SystemExamples::PrintAge.new
-    system.register(world)
+    SystemExamples::SurveyAge.new.register(world)
 
     alice = world.entity_init(name: "Alice")
     bob = world.entity_init(name: "Bob")
@@ -57,17 +61,20 @@ describe System do
     world.set(alice, SystemExamples::Age.new(99_u32))
     world.set(bob, SystemExamples::Age.new(88_u32))
 
-    system.total_age.should eq 0
-    system.mean_age.should eq 0
+    stats = world.set_singleton(SystemExamples::AgeStats.new)
+    stats.mean.should eq 0
+    stats.total.should eq 0
 
     world.progress
 
-    system.total_age.should eq 189
-    system.mean_age.should eq 94.5
+    stats = world.get_singleton(SystemExamples::AgeStats)
+    stats.mean.should eq 94.5
+    stats.total.should eq 189
 
     world.progress
 
-    system.total_age.should eq 191
-    system.mean_age.should eq 95.5
+    stats = world.get_singleton(SystemExamples::AgeStats)
+    stats.mean.should eq 95.5
+    stats.total.should eq 191
   end
 end

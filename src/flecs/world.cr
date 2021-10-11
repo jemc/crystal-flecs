@@ -77,19 +77,30 @@ struct ECS::World
     get_id(entity, component_class.id(self), component_class)
   end
 
+  # Convenience wrapper for get for when the entity is a component singleton.
+  def get_singleton(component_class : T.class) forall T
+    get_id(component_class.id(self), component_class.id(self), component_class)
+  end
+
   # Set the value of a component.
   #
   # This operation allows an application to set the value of a component. The
   # operation is equivalent to calling ecs_get_mut and ecs_modified.
   #
   # If the provided entity is 0, a new entity will be created.
-  def set_id(entity : UInt64, id : UInt64, c : T) forall T
-    LibECS.set_id(self, entity, id, sizeof(T), pointerof(c))
+  def set_id(entity : UInt64, id : UInt64, component : T) : T forall T
+    LibECS.set_id(self, entity, id, sizeof(T), pointerof(component))
+    component
   end
 
   # Convenience wrapper for set_id for when component implements the id method.
-  def set(entity : UInt64, component : T) forall T
+  def set(entity : UInt64, component : T) : T forall T
     set_id(entity, component.class.id(self), component)
+  end
+
+  # Convenience wrapper for set for when the entity is a component singleton.
+  def set_singleton(component : T) : T forall T
+    set(component.class.id(self), component)
   end
 
   # Progress a world.

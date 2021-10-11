@@ -66,6 +66,11 @@ module ECS::System::DSL
     PHASE = {{name}}
   end
 
+  # Declare a standard term in the query for this system,
+  # allowing read or write or read/write access to the given component type
+  # under the given accessor name. For every row in the query results,
+  # the component will be accessible to read and/or write using the accessors
+  # that get implicitly declared by this macro on Iter and Iter::Row.
   macro term(decl, write = false, read = true)
     struct Iter
       {% if read %}
@@ -118,6 +123,47 @@ module ECS::System::DSL
     }#{
       "out" if {{write}}
     }] #{
+      {{ decl.type }}::ECS_NAME
+    }"
+
+    # Ensure that the component entity is registered before the system entity.
+    ON_REGISTER_HOOKS << ->(world : World) { {{decl.type}}.register(world) }
+  end
+
+  # Similar to `term`, `singleton` declares a query term,
+  # but in this case it refers to a singleton component
+  # (i.e. a global entity with the same name as the component itself).
+  # As such, this macro only declares accessors on Iter, not Iter::Row.
+  macro singleton(decl, write = false, read = true)
+    struct Iter
+      {% if read %}
+        def {{decl.var}} : {{decl.type}}
+          Pointer(Pointer({{decl.type}})).new(
+            @unsafe.value.ptrs.address
+          )[{{ INTERNAL_TERMS_COUNTER.size }}].value
+        end
+      {% end %}
+
+      {% if write %}
+        def {{decl.var}}=(value : {{decl.type}})
+          Pointer(Pointer({{decl.type}})).new(
+            @unsafe.value.ptrs.address
+          )[{{ INTERNAL_TERMS_COUNTER.size }}].value = value
+        end
+
+        def update_{{decl.var}}(&block : {{decl.type}} -> {{decl.type}})
+          self.{{decl.var}} = yield self.{{decl.var}}
+        end
+      {% end %}
+    end
+
+    {% INTERNAL_TERMS_COUNTER << nil %}
+
+    QUERY_STRING_TERMS << "[#{
+      "in" if {{read}}
+    }#{
+      "out" if {{write}}
+    }] $#{
       {{ decl.type }}::ECS_NAME
     }"
 
