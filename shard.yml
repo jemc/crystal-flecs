@@ -1,0 +1,9 @@
+name: flecs
+version: 0.1.0
+
+authors:
+  - Joe Eli McIlvain <joe.eli.mac@gmail.com>
+
+crystal: 1.0.0
+
+license: MIT
