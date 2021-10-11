@@ -7,3 +7,8 @@ vendor/libflecs.a: vendor/flecs.o
 .PHONY: spec
 spec: vendor/libflecs.a
 	crystal spec
+
+.PHONY: spec-lldb
+spec-lldb: vendor/libflecs.a
+	crystal build spec/spec_main.cr -o /tmp/crystal-flecs-spec
+	lldb -o run -- /tmp/crystal-flecs-spec
