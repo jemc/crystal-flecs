@@ -99,4 +99,24 @@ struct ECS::World
   def set_id(entity : UInt64, id : UInt64, c : T) forall T
     LibECS.set_id(self, entity, id, sizeof(T), pointerof(c))
   end
+
+  # Progress a world.
+  #
+  # This operation progresses the world by running all systems that are both
+  # enabled and periodic on their matching entities.
+  #
+  # An application can pass a delta_time into the function, which is the time
+  # passed since the last frame. This value is passed to systems so they can
+  # update entity values proportional to the elapsed time since their last
+  # invocation.
+  #
+  # When an application passes 0 to delta_time, ecs_progress will automatically
+  # measure the time passed since the last frame. If an application does not uses
+  # time management, it should pass a non-zero value for delta_time (1.0 is
+  # recommended). That way, no time will be wasted measuring the time.
+  #
+  # Returns false if ecs_quit has been called, true otherwise.
+  def progress(delta_time : Float32 = 0) : Bool
+    LibECS.progress(self, delta_time)
+  end
 end

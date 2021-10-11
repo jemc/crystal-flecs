@@ -6,6 +6,17 @@ module Example
     def initialize(@age)
     end
   end
+
+  class PrintAge < ECS::System
+    def phase : String; "EcsOnLoad"; end
+    def query : String; "Age"; end
+
+    property did_run = false
+
+    def run
+      @did_run = true
+    end
+  end
 end
 
 describe World do
@@ -37,6 +48,25 @@ describe World do
 
     world.set_id(alice, age, Example::Age.new(99_u64))
     world.get_id(alice, age, Example::Age).age.should eq 99_u64
+
+    world.fini
+  end
+
+  it "can run a system" do
+    world = World.init
+
+    age = world.component_init(name: "Age", size: 8, alignment: 8)
+    alice = world.entity_init(name: "Alice")
+    world.set_id(alice, age, Example::Age.new(99_u64))
+
+    system = Example::PrintAge.new
+    system.register(world)
+
+    system.did_run.should eq false
+
+    world.progress
+
+    system.did_run.should eq true
 
     world.fini
   end
