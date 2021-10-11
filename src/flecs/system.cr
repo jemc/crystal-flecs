@@ -63,26 +63,60 @@ module ECS::System::DSL
     PHASE = {{name}}
   end
 
-  macro term(decl)
+  macro term(decl, write = false, read = true)
     struct Iter
-      def get_{{decl.var}}(index : Int32) : {{decl.type}}
-        Pointer(Pointer({{decl.type}})).new(
-          @unsafe.value.ptrs.address
-        )[{{ INTERNAL_TERMS_COUNTER.size }}][index]
-      end
+      {% if read %}
+        def get_{{decl.var}}(index : Int32) : {{decl.type}}
+          Pointer(Pointer({{decl.type}})).new(
+            @unsafe.value.ptrs.address
+          )[{{ INTERNAL_TERMS_COUNTER.size }}][index]
+        end
+      {% end %}
+
+      {% if write %}
+        def set_{{decl.var}}(index : Int32, value : {{decl.type}})
+          Pointer(Pointer({{decl.type}})).new(
+            @unsafe.value.ptrs.address
+          )[{{ INTERNAL_TERMS_COUNTER.size }}][index] = value
+        end
+
+        def update_{{decl.var}}(index : Int32, &block : {{decl.type}} -> {{decl.type}})
+          set_{{decl.var}}(index, yield get_{{decl.var}}(index))
+        end
+      {% end %}
     end
 
     struct Iter::Row
-      def {{decl.var}} : {{decl.type}}
-        Pointer(Pointer({{decl.type}})).new(
-          @unsafe.value.ptrs.address
-        )[{{ INTERNAL_TERMS_COUNTER.size }}][@index]
-      end
+      {% if read %}
+        def {{decl.var}} : {{decl.type}}
+          Pointer(Pointer({{decl.type}})).new(
+            @unsafe.value.ptrs.address
+          )[{{ INTERNAL_TERMS_COUNTER.size }}][@index]
+        end
+      {% end %}
+
+      {% if write %}
+        def {{decl.var}}=(value : {{decl.type}}) : {{decl.type}}
+          Pointer(Pointer({{decl.type}})).new(
+            @unsafe.value.ptrs.address
+          )[{{ INTERNAL_TERMS_COUNTER.size }}][@index] = value
+        end
+
+        def update_{{decl.var}}(&block : {{decl.type}} -> {{decl.type}})
+          self.{{decl.var}} = yield self.{{decl.var}}
+        end
+      {% end %}
     end
 
     {% INTERNAL_TERMS_COUNTER << nil %}
 
-    QUERY_STRING_TERMS << {{ decl.type }}::ECS_NAME
+    QUERY_STRING_TERMS << "[#{
+      "in" if {{read}}
+    }#{
+      "out" if {{write}}
+    }] #{
+      {{ decl.type }}::ECS_NAME
+    }"
   end
 
   macro _dsl_end

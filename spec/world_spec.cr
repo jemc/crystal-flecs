@@ -7,8 +7,23 @@ module Example
     end
   end
 
+  system IncrementAge do
+    phase "EcsOnUpdate"
+
+    term age : Age, write: true
+
+    def run(iter)
+      iter.each { |row|
+        row.update_age { |age|
+          age.years += 1
+          age
+        }
+      }
+    end
+  end
+
   system PrintAge do
-    phase "EcsOnLoad"
+    phase "EcsOnStore"
 
     term age : Age
 
@@ -56,6 +71,10 @@ describe World do
     world.set(alice, Example::Age.new(99_u64))
     world.set(bob, Example::Age.new(88_u64))
 
+    Example::IncrementAge::QUERY_STRING.should eq "[inout] Example__Age"
+    Example::PrintAge::QUERY_STRING.should eq "[in] Example__Age"
+
+    Example::IncrementAge.new.register(world)
     system = Example::PrintAge.new
     system.register(world)
 
@@ -64,8 +83,13 @@ describe World do
 
     world.progress
 
-    system.total_age.should eq 187
-    system.mean_age.should eq 93.5
+    system.total_age.should eq 189
+    system.mean_age.should eq 94.5
+
+    world.progress
+
+    system.total_age.should eq 191
+    system.mean_age.should eq 95.5
 
     world.fini
   end
