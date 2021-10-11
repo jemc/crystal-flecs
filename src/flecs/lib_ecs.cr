@@ -35,5 +35,19 @@ module ECS
       world : WorldRef,
       desc : ComponentDesc*,
     ) : UInt64
+
+    fun get_id = ecs_get_id(
+      world : WorldRef,
+      entity : UInt64,
+      id : UInt64,
+    ) : Void*
+
+    fun set_id = ecs_set_id(
+      world : WorldRef,
+      entity : UInt64,
+      id : UInt64,
+      size : LibC::SizeT,
+      ptr : Void*,
+    ) : UInt64
   end
 end

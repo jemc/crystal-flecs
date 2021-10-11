@@ -81,4 +81,22 @@ struct ECS::World
 
     id
   end
+
+  # Get an immutable pointer to a component.
+  #
+  # This operation obtains a const pointer to the requested component. The
+  # operation accepts the component entity id.
+  def get_id(entity : UInt64, id : UInt64, c : T.class) forall T
+    Pointer(T).new(LibECS.get_id(self, entity, id).address).value
+  end
+
+  # Set the value of a component.
+  #
+  # This operation allows an application to set the value of a component. The
+  # operation is equivalent to calling ecs_get_mut and ecs_modified.
+  #
+  # If the provided entity is 0, a new entity will be created.
+  def set_id(entity : UInt64, id : UInt64, c : T) forall T
+    LibECS.set_id(self, entity, id, sizeof(T), pointerof(c))
+  end
 end
