@@ -50,7 +50,7 @@ module ECS::System::DSL
         index = 0
         while index < count
           yield Row.new(@unsafe, index)
-          index += 1
+          index = index &+ 1
         end
       end
     end

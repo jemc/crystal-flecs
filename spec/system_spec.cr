@@ -16,8 +16,8 @@ module SystemExamples
     def run(iter)
       iter.each { |row|
         row.update_age { |age|
-          age.years += 1
-          age.other_years += 1
+          age.years &+= 1
+          age.other_years &+= 1
           age
         }
       }
@@ -31,7 +31,7 @@ module SystemExamples
 
     def run(iter)
       @total_age = 0
-      iter.each { |row| @total_age += row.age.years }
+      iter.each { |row| @total_age &+= row.age.years }
       @mean_age = @total_age / iter.count
     end
 
