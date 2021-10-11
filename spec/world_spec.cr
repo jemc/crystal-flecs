@@ -7,14 +7,14 @@ module Example
     end
   end
 
-  class PrintAge < ECS::System
+  system PrintAge do
     phase "EcsOnLoad"
     query "Age"
 
     term age : Age
 
-    def run
-      @saw_age = get_age(0).age
+    def run(iter)
+      @saw_age = iter.get_age(0).age
     end
 
     property saw_age : UInt64 = 0
