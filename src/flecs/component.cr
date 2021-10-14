@@ -19,6 +19,12 @@ module ECS::Component::StaticMethods
 
   # Register this component within the given World.
   def register(world : ECS::World)
+    the_self = self
+    # If the component author declared a before_register method, run it now.
+    if the_self.responds_to?(:before_register)
+      the_self.before_register(world)
+    end
+
     desc = ECS::LibECS::ComponentDesc.new
     desc.entity.name = ecs_name
     desc.size = sizeof(self)
@@ -30,6 +36,12 @@ module ECS::Component::StaticMethods
       if id == 0_u64
 
     save_id(world, id)
+
+    # If the component author declared an after_register method, run it now.
+    if the_self.responds_to?(:after_register)
+      the_self.after_register(world)
+    end
+
     id
   end
 end
