@@ -19,9 +19,9 @@ module ECS::System::DSL
     %}
 
     struct Iter
-      @unsafe : LibECS::Iter*
-      @world_root : World::Root
-      def initialize(@unsafe, @world_root : World::Root)
+      @unsafe : ECS::LibECS::Iter*
+      @world_root : ECS::World::Root
+      def initialize(@unsafe, @world_root : ECS::World::Root)
       end
 
       # A table row to be processed by the system during iteration.
@@ -29,14 +29,14 @@ module ECS::System::DSL
       # It contains macro-generated accessor methods for each term
       # named during declaration of the system (via the DSL).
       struct Row
-        @unsafe : LibECS::Iter*
+        @unsafe : ECS::LibECS::Iter*
         @index : Int32
         def initialize(@unsafe, @index)
         end
       end
 
       def world
-        World.new(@unsafe.value.world, @world_root)
+        ECS::World.new(@unsafe.value.world, @world_root)
       end
 
       # Number of entities to process by system.
@@ -64,7 +64,7 @@ module ECS::System::DSL
     QUERY_STRING_TERMS = [] of String
 
     # Get ready to accumulate other things to be registered.
-    ON_REGISTER_HOOKS = [] of World ->
+    ON_REGISTER_HOOKS = [] of ECS::World ->
   end
 
   macro phase(name)
@@ -136,7 +136,7 @@ module ECS::System::DSL
     }"
 
     # Ensure that the component entity is registered before the system entity.
-    ON_REGISTER_HOOKS << ->(world : World) { {{decl.type}}.register(world) }
+    ON_REGISTER_HOOKS << ->(world : ECS::World) { {{decl.type}}.register(world) }
   end
 
   # Similar to `term`, `singleton` declares a query term,
@@ -179,7 +179,7 @@ module ECS::System::DSL
     }"
 
     # Ensure that the component entity is registered before the system entity.
-    ON_REGISTER_HOOKS << ->(world : World) { {{decl.type}}.register(world) }
+    ON_REGISTER_HOOKS << ->(world : ECS::World) { {{decl.type}}.register(world) }
   end
 
   macro _dsl_end
@@ -190,22 +190,22 @@ module ECS::System::DSL
     {% INTERNAL_TERMS_COUNTER.clear %}
 
     # Register this system within the given World.
-    def self.register(world : World)
+    def self.register(world : ECS::World)
       # First register anything the system depends on.
       ON_REGISTER_HOOKS.each(&.call(world))
 
-      desc = LibECS::SystemDesc.new
+      desc = ECS::LibECS::SystemDesc.new
       desc.entity.name = self.name
       desc.entity.add_expr = PHASE
       desc.query.filter.expr = QUERY_STRING
 
       desc.ctx = Box.box(world.root)
-      desc.callback = ->(iter : LibECS::Iter*) {
-        world_root = Box(World::Root).unbox(iter.value.ctx)
+      desc.callback = ->(iter : ECS::LibECS::Iter*) {
+        world_root = Box(ECS::World::Root).unbox(iter.value.ctx)
         run(Iter.new(iter, world_root))
       }
 
-      id = LibECS.system_init(world, pointerof(desc))
+      id = ECS::LibECS.system_init(world, pointerof(desc))
     end
   end
 end
