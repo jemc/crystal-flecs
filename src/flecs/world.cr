@@ -34,6 +34,11 @@ struct ECS::World
       unless 0 == LibECS.fini(self)
   end
 
+  # Get world info.
+  def info : LibECS::WorldInfo
+    LibECS.get_world_info(self).value
+  end
+
   # Find or create an entity.
   #
   # This operation creates a new entity, or modifies an existing one. When a name

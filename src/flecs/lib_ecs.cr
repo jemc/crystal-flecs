@@ -7,6 +7,26 @@ module ECS
     type TypeRef = Void*
     type EntityRefRef = Void*
 
+    struct WorldInfo
+      last_component_id : UInt64
+      last_id : UInt64
+      min_id : UInt64
+      max_id : UInt64
+      delta_time_raw : Float32
+      delta_time : Float32
+      time_scale : Float32
+      target_fps : Float32
+      frame_time_total : Float32
+      system_time_total : Float32
+      merge_time_total : Float32
+      world_time_total : Float32
+      world_time_total_raw : Float32
+      frame_count_total : Int32
+      merge_count_total : Int32
+      pipeline_build_count_total : Int32
+      systems_ran_frame : Int32
+    end
+
     struct TermSet
       relation : UInt64
       mask : UInt8
@@ -162,6 +182,8 @@ module ECS
     fun init = ecs_init() : WorldRef
 
     fun fini = ecs_fini(world : WorldRef) : Int32
+
+    fun get_world_info = ecs_get_world_info(world : WorldRef) : WorldInfo*
 
     fun entity_init = ecs_entity_init(
       world : WorldRef,

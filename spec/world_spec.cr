@@ -23,4 +23,12 @@ describe World do
     world.set(alice, WorldExamples::Age[99_u64])
     world.get(alice, WorldExamples::Age).years.should eq 99_u64
   end
+
+  it "can tell the total number of frames that have elapsed" do
+    world.info.frame_count_total.should eq 0
+    world.progress
+    world.info.frame_count_total.should eq 1
+    world.progress
+    world.info.frame_count_total.should eq 2
+  end
 end
