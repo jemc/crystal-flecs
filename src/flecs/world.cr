@@ -107,8 +107,9 @@ struct ECS::World
   #
   # This operation obtains a const pointer to the requested component. The
   # operation accepts the component entity id.
-  def get_id(entity : UInt64, id : UInt64, c : T.class) forall T
-    Pointer(T).new(LibECS.get_id(self, entity, id).address).value
+  def get_id(entity : UInt64, id : UInt64, c : T.class): T? forall T
+    ptr = Pointer(T).new(LibECS.get_id(self, entity, id).address)
+    ptr.value unless ptr.null?
   end
 
   # Convenience wrapper for get_id for when component implements the id method.
@@ -119,6 +120,12 @@ struct ECS::World
   # Convenience wrapper for get for when the entity is a component singleton.
   def get_singleton(component_class : T.class) forall T
     get_id(component_class.id(self), component_class.id(self), component_class)
+  end
+
+  # Get a component that relates a subject entity to an object entity
+  def get_relation(entity : UInt64, component_class : T.class, object : UInt64) forall T
+    relation = LibECS.make_pair(component_class.id(self), object)
+    get_id(entity, relation, component_class)
   end
 
   # Set the value of a component.
@@ -133,13 +140,45 @@ struct ECS::World
   end
 
   # Convenience wrapper for set_id for when component implements the id method.
-  def set(entity : UInt64, component : T) : T forall T
+  def set(entity : UInt64, component : T) forall T
     set_id(entity, component.class.id(self), component)
   end
 
   # Convenience wrapper for set for when the entity is a component singleton.
-  def set_singleton(component : T) : T forall T
+  def set_singleton(component : T) forall T
     set(component.class.id(self), component)
+  end
+
+  # Set a component that relates a subject entity to an object entity.
+  def set_relation(subject : UInt64, component : T, object : UInt64) forall T
+    relation = LibECS.make_pair(component.class.id(self), object)
+    set_id(subject, relation, component)
+  end
+
+  # Remove an entity from an entity.
+  #
+  # This operation removes a single entity from the type of an entity. Type roles
+  # may be used in combination with the added entity. If the entity does not have
+  # the entity, this operation will have no side effects.
+  def remove_id(entity : UInt64, id : UInt64) forall T
+    LibECS.remove_id(self, entity, id)
+    nil
+  end
+
+  # Convenience wrapper for remove_id for when component implements the id method.
+  def remove(entity : UInt64, component_class : T.class) forall T
+    remove_id(entity, component_class.id(self))
+  end
+
+  # Convenience wrapper for remove for when the entity is a component singleton.
+  def remove_singleton(component_class : T.class) forall T
+    remove(component_class.id(self), component_class)
+  end
+
+  # Remove a component if it relates the subject entity to the object entity.
+  def remove_relation(subject : UInt64, component_class : T.class, object : UInt64) forall T
+    relation = LibECS.make_pair(component_class.id(self), object)
+    remove_id(subject, relation)
   end
 
   # Progress a world.

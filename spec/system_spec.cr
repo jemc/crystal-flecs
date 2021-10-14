@@ -61,19 +61,19 @@ describe System do
     world.set(alice, SystemExamples::Age[99_u32])
     world.set(bob, SystemExamples::Age[88_u32])
 
-    stats = world.set_singleton(SystemExamples::AgeStats[])
+    stats = world.set_singleton(SystemExamples::AgeStats[]).not_nil!
     stats.mean.should eq 0
     stats.total.should eq 0
 
     world.progress
 
-    stats = world.get_singleton(SystemExamples::AgeStats)
+    stats = world.get_singleton(SystemExamples::AgeStats).not_nil!
     stats.mean.should eq 94.5
     stats.total.should eq 189
 
     world.progress
 
-    stats = world.get_singleton(SystemExamples::AgeStats)
+    stats = world.get_singleton(SystemExamples::AgeStats).not_nil!
     stats.mean.should eq 95.5
     stats.total.should eq 191
   end

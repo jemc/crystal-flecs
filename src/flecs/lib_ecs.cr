@@ -192,6 +192,11 @@ module ECS
       desc : EntityDesc*,
     ) : UInt64
 
+    fun make_pair = ecs_make_pair(
+      relation : UInt64,
+      object : UInt64,
+    ) : UInt64
+
     fun lookup = ecs_lookup(world : WorldRef, name : UInt8*) : UInt64
 
     fun component_init = ecs_component_init(
@@ -216,6 +221,12 @@ module ECS
       id : UInt64,
       size : LibC::SizeT,
       ptr : Void*,
+    ) : UInt64
+
+    fun remove_id = ecs_remove_id(
+      world : WorldRef,
+      entity : UInt64,
+      id : UInt64,
     ) : UInt64
 
     fun progress = ecs_progress(
