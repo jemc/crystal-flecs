@@ -39,6 +39,29 @@ struct ECS::World
     LibECS.get_world_info(self).value
   end
 
+  # Set target frames per second (FPS) for application.
+  #
+  # Setting the target FPS ensures that ecs_progress is not invoked faster than
+  # the specified FPS. When enabled, ecs_progress tracks the time passed since
+  # the last invocation, and sleeps the remaining time of the frame (if any).
+  #
+  # This feature ensures systems are ran at a consistent interval, as well as
+  # conserving CPU time by not running systems more often than required.
+  #
+  # Note that ecs_progress only sleeps if there is time left in the frame. Both
+  # time spent in flecs as time spent outside of flecs are taken into
+  # account.
+  def target_fps=(value)
+    LibECS.set_target_fps(self, value)
+  end
+
+  # Get target frames per second (FPS) for application.
+  #
+  # See the setter method for more details on how this value is used.
+  def target_fps
+    info.target_fps
+  end
+
   # Find or create an entity.
   #
   # This operation creates a new entity, or modifies an existing one. When a name

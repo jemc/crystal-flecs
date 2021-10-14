@@ -185,6 +185,8 @@ module ECS
 
     fun get_world_info = ecs_get_world_info(world : WorldRef) : WorldInfo*
 
+    fun set_target_fps = ecs_set_target_fps(world : WorldRef, fps : Float32)
+
     fun entity_init = ecs_entity_init(
       world : WorldRef,
       desc : EntityDesc*,

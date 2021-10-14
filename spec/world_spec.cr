@@ -31,4 +31,17 @@ describe World do
     world.progress
     world.info.frame_count_total.should eq 2
   end
+
+  it "can get and set the target FPS value" do
+    world.target_fps.should eq 0
+    world.info.target_fps.should eq 0
+
+    world.target_fps = 60
+    world.target_fps.should eq 60
+    world.info.target_fps.should eq 60
+
+    world.target_fps = 30
+    world.target_fps.should eq 30
+    world.info.target_fps.should eq 30
+  end
 end
