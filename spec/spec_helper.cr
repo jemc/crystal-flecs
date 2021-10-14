@@ -19,3 +19,9 @@ end
 def it_alias(description = "assert", file = __FILE__, line = __LINE__, end_line = __END_LINE__, focus : Bool = false, tags : String | Enumerable(String) | Nil = nil, &block)
   Spec.root_context.it(description.to_s, file, line, end_line, focus, tags, &block)
 end
+
+# To test our DSL, we sometimes need to test which methods have been declared
+# by the macros. We use this macro to get the names of the methods of a type.
+macro method_names_of(type)
+  {{ type.resolve.methods.map(&.name.stringify) }}
+end
