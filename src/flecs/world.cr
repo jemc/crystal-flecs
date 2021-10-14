@@ -92,6 +92,17 @@ struct ECS::World
     id
   end
 
+  # Lookup an entity by name.
+  #
+  # Returns an entity that matches the specified name. Only looks for entities in
+  # the current scope (root if no scope is provided).
+  #
+  # Returns the entity with the specified name, or nil if no entity was found.
+  def lookup(name : String) : UInt64?
+    id = LibECS.lookup(self, name)
+    id if id != 0
+  end
+
   # Get an immutable pointer to a component.
   #
   # This operation obtains a const pointer to the requested component. The

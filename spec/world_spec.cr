@@ -11,6 +11,10 @@ end
 describe World do
   it "can create an entity and retrieve the same entity by name" do
     foo = world.entity_init(name: "Foo")
+
+    world.lookup(name: "Foo").should eq foo
+    world.lookup(name: "Bar").should eq nil
+
     world.entity_init(name: "Foo").should eq foo
     world.entity_init(name: "Bar").should_not eq foo
   end

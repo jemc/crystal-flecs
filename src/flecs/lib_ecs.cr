@@ -192,6 +192,8 @@ module ECS
       desc : EntityDesc*,
     ) : UInt64
 
+    fun lookup = ecs_lookup(world : WorldRef, name : UInt8*) : UInt64
+
     fun component_init = ecs_component_init(
       world : WorldRef,
       desc : ComponentDesc*,
