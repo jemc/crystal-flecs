@@ -156,7 +156,7 @@ struct ECS::World
   end
 
   # Set a component that relates a subject entity to an object entity.
-  def set_relation(subject : UInt64, component : T, object) forall T
+  def set_relation(subject, component : T, object) forall T
     subject = subject.id(self) unless subject.is_a?(UInt64)
     object = object.id(self) unless object.is_a?(UInt64)
     relation = LibECS.make_pair(component.class.id(self), object)
@@ -186,7 +186,7 @@ struct ECS::World
   end
 
   # Remove a component if it relates the subject entity to the object entity.
-  def remove_relation(subject : UInt64, component_class : T.class, object : UInt64) forall T
+  def remove_relation(subject, component_class : T.class, object) forall T
     subject = subject.id(self) unless subject.is_a?(UInt64)
     object = object.id(self) unless object.is_a?(UInt64)
     relation = LibECS.make_pair(component_class.id(self), object)
