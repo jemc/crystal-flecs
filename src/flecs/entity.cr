@@ -1,7 +1,7 @@
 module ECS
   macro entity(name, &block)
     module {{name}}
-      include ECS::Entity::DSL
+      include ::ECS::Entity::DSL
       _dsl_begin
       {{block.body if block}}
       _dsl_end({{name}})
@@ -12,12 +12,12 @@ end
 module ECS::Entity::DSL
   macro _dsl_begin
     # Get ready to accumulate other things to do after registering.
-    AFTER_REGISTER_HOOKS = [] of (ECS::World, UInt64) ->
+    AFTER_REGISTER_HOOKS = [] of (::ECS::World, UInt64) ->
   end
 
   macro set(component, object = nil)
     {% if object %}
-      AFTER_REGISTER_HOOKS << ->(world : ECS::World, id : UInt64) {
+      AFTER_REGISTER_HOOKS << ->(world : ::ECS::World, id : UInt64) {
         component = {{component}}
         object = {{object}}
 
@@ -27,7 +27,7 @@ module ECS::Entity::DSL
         world.set_relation(id, component, object)
       }
     {% else %}
-      AFTER_REGISTER_HOOKS << ->(world : ECS::World, id : UInt64) {
+      AFTER_REGISTER_HOOKS << ->(world : ::ECS::World, id : UInt64) {
         component = {{component}}
 
         component.class.register(world)
@@ -50,16 +50,16 @@ module ECS::Entity::DSL
       property _id_for_{{ecs_name}} = 0_u64
     end
 
-    def self.id(world : ECS::World)
+    def self.id(world : ::ECS::World)
       world.root._id_for_{{ecs_name}}
     end
 
-    private def self.save_id(world : ECS::World, id : UInt64)
+    private def self.save_id(world : ::ECS::World, id : UInt64)
       world.root._id_for_{{ecs_name}} = id
     end
 
     # Register this entity within the given World.
-    def self.register(world : ECS::World)
+    def self.register(world : ::ECS::World)
       the_self = self
       # If the entity author declared a before_register method, run it now.
       if the_self.responds_to?(:before_register)
@@ -67,13 +67,13 @@ module ECS::Entity::DSL
       end
 
       # Prepare the entity descriptor.
-      desc = ECS::LibECS::EntityDesc.new
+      desc = ::ECS::LibECS::EntityDesc.new
       desc.name = self.ecs_name
       # TODO: desc.add_expr ?
 
       # Register the entity and save its id in the world root.
-      id = ECS::LibECS.entity_init(world, pointerof(desc))
-      raise Error.new("Failed to register entity in the world") if id == 0_u64
+      id = ::ECS::LibECS.entity_init(world, pointerof(desc))
+      raise ::ECS::Error.new("Failed to register entity in the world") if id == 0_u64
       save_id(world, id)
 
       # Now run the internal after register hooks.

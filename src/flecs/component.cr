@@ -20,20 +20,20 @@ module ECS::Component::StaticMethods
   end
 
   # Register this component within the given World.
-  def register(world : ECS::World)
+  def register(world : ::ECS::World)
     the_self = self
     # If the component author declared a before_register method, run it now.
     if the_self.responds_to?(:before_register)
       the_self.before_register(world)
     end
 
-    desc = ECS::LibECS::ComponentDesc.new
+    desc = ::ECS::LibECS::ComponentDesc.new
     desc.entity.name = ecs_name
     desc.size = sizeof(self)
     desc.alignment = offsetof({self, self}, 1)
     # TODO: desc.entity.add_expr ?
 
-    id = ECS::LibECS.component_init(world, pointerof(desc))
+    id = ::ECS::LibECS.component_init(world, pointerof(desc))
     raise Error.new("Failed to register component in the world") \
       if id == 0_u64
 
@@ -48,7 +48,7 @@ module ECS::Component::StaticMethods
   end
 end
 
-module ECS::Component::DSL
+module ::ECS::Component::DSL
   macro _dsl_begin
   end
 
@@ -65,11 +65,11 @@ module ECS::Component::DSL
       property _id_for_{{ecs_name}} = 0_u64
     end
 
-    def self.id(world : ECS::World)
+    def self.id(world : ::ECS::World)
       world.root._id_for_{{ecs_name}}
     end
 
-    private def self.save_id(world : ECS::World, id : UInt64)
+    private def self.save_id(world : ::ECS::World, id : UInt64)
       world.root._id_for_{{ecs_name}} = id
     end
   end

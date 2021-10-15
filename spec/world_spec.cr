@@ -8,7 +8,7 @@ module WorldExamples
   end
 end
 
-describe World do
+describe ECS::World do
   it "can create an entity and retrieve the same entity by name" do
     foo = world.entity_init(name: "Foo")
 

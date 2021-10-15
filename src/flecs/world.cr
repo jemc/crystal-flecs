@@ -10,7 +10,7 @@ struct ECS::World
   end
 
   @unsafe : LibECS::WorldRef
-  protected getter root : ECS::World::Root
+  protected getter root : World::Root
   def to_unsafe; @unsafe end
   def initialize(@unsafe, @root)
   end

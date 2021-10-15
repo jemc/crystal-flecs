@@ -1,14 +1,12 @@
 require "spec"
 require "../src/flecs"
 
-include ECS
-
 # Implicitly set up and tear down the World around each spec example.
 # Crystal's Spec doesn't have any way for before/after hooks to set a variable,
 # so we unabashedly resort to crude hackery here to get it done for us.
 macro it(name, &block)
   it_alias {{name}} do
-    world = World.init
+    world = ECS::World.init
 
     {{block.body}}
 

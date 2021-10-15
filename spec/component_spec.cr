@@ -1,24 +1,24 @@
 require "./spec_helper"
 
 module ComponentExamples
-  component Hooks do
+  ECS.component Hooks do
     property dummy : Int32 = 0
 
     HOOKS_RAN = [] of Symbol
     ID_WHEN_HOOKS_RAN = [] of UInt64
 
-    def self.before_register(world : World)
+    def self.before_register(world : ECS::World)
       HOOKS_RAN << :before
       ID_WHEN_HOOKS_RAN << id(world)
     end
-    def self.after_register(world : World)
+    def self.after_register(world : ECS::World)
       HOOKS_RAN << :after
       ID_WHEN_HOOKS_RAN << id(world)
     end
   end
 end
 
-describe Component do
+describe ECS::Component do
   it "can run custom hooks before and after registering with the world" do
     ComponentExamples::Hooks.register(world)
 

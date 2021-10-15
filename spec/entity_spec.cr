@@ -21,7 +21,7 @@ module EntityExamples
   end
 end
 
-describe World do
+describe ECS::World do
   it "can be registered to obtain an id" do
     EntityExamples::Alice.id(world).should eq 0
 
