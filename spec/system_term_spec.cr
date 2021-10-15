@@ -1,13 +1,13 @@
 require "./spec_helper"
 
 module SystemTermExamples
-  component Age do
+  ECS.component Age do
     property years : UInt32
     def initialize(@years)
     end
   end
 
-  system ReadOnly do
+  ECS.system ReadOnly do
     phase "EcsOnStore"
 
     term x : Age
@@ -16,7 +16,7 @@ module SystemTermExamples
     end
   end
 
-  system ReadWrite do
+  ECS.system ReadWrite do
     phase "EcsOnStore"
 
     term x : Age, write: true
@@ -25,7 +25,7 @@ module SystemTermExamples
     end
   end
 
-  system WriteOnly do
+  ECS.system WriteOnly do
     phase "EcsOnStore"
 
     term x : Age, write: true, read: false
@@ -34,7 +34,7 @@ module SystemTermExamples
     end
   end
 
-  system SingletonReadOnly do
+  ECS.system SingletonReadOnly do
     phase "EcsOnStore"
 
     singleton x : Age
@@ -43,7 +43,7 @@ module SystemTermExamples
     end
   end
 
-  system SingletonReadWrite do
+  ECS.system SingletonReadWrite do
     phase "EcsOnStore"
 
     singleton x : Age, write: true
@@ -52,7 +52,7 @@ module SystemTermExamples
     end
   end
 
-  system SingletonWriteOnly do
+  ECS.system SingletonWriteOnly do
     phase "EcsOnStore"
 
     singleton x : Age, write: true, read: false

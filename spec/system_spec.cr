@@ -1,20 +1,20 @@
 require "./spec_helper"
 
 module SystemExamples
-  component Age do
+  ECS.component Age do
     property years : UInt32
     def initialize(@years)
     end
   end
 
-  component AgeStats do
+  ECS.component AgeStats do
     property mean : Float64
     property total : UInt32
     def initialize(@mean = 0_f64, @total = 0_u32)
     end
   end
 
-  system IncrementAge do
+  ECS.system IncrementAge do
     phase "EcsOnUpdate"
 
     term age : Age, write: true
@@ -29,7 +29,7 @@ module SystemExamples
     end
   end
 
-  system SurveyAge do
+  ECS.system SurveyAge do
     phase "EcsOnStore"
 
     term age : Age

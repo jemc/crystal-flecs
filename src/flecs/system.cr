@@ -1,9 +1,11 @@
-macro system(name, &block)
-  module {{name}}
-    include ECS::System::DSL
-    _dsl_begin
-    {{block.body}}
-    _dsl_end
+module ECS
+  macro system(name, &block)
+    module {{name}}
+      include ECS::System::DSL
+      _dsl_begin
+      {{block.body}}
+      _dsl_end
+    end
   end
 end
 

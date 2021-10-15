@@ -1,7 +1,7 @@
 require "./spec_helper"
 
 module WorldExamples
-  component Age do
+  ECS.component Age do
     property years : UInt64 = 0
     def initialize(@years)
     end

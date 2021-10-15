@@ -1,10 +1,12 @@
-macro component(name, &block)
-  struct {{name}}
-    extend ECS::Component::StaticMethods
-    include ECS::Component::DSL
-    _dsl_begin
-    {{block.body}}
-    _dsl_end({{name}})
+module ECS
+  macro component(name, &block)
+    struct {{name}}
+      extend ECS::Component::StaticMethods
+      include ECS::Component::DSL
+      _dsl_begin
+      {{block.body}}
+      _dsl_end({{name}})
+    end
   end
 end
 
