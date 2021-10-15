@@ -107,13 +107,15 @@ struct ECS::World
   #
   # This operation obtains a const pointer to the requested component. The
   # operation accepts the component entity id.
-  def get_id(entity : UInt64, id : UInt64, c : T.class): T? forall T
+  def get_id(entity, id : UInt64, c : T.class): T? forall T
+    entity = entity.id(self) unless entity.is_a?(UInt64)
     ptr = Pointer(T).new(LibECS.get_id(self, entity, id).address)
     ptr.value unless ptr.null?
   end
 
   # Convenience wrapper for get_id for when component implements the id method.
-  def get(entity : UInt64, component_class : T.class) forall T
+  def get(entity, component_class : T.class) forall T
+    entity = entity.id(self) unless entity.is_a?(UInt64)
     get_id(entity, component_class.id(self), component_class)
   end
 
@@ -123,9 +125,11 @@ struct ECS::World
   end
 
   # Get a component that relates a subject entity to an object entity
-  def get_relation(entity : UInt64, component_class : T.class, object : UInt64) forall T
+  def get_relation(subject, component_class : T.class, object) forall T
+    subject = subject.id(self) unless subject.is_a?(UInt64)
+    object = object.id(self) unless object.is_a?(UInt64)
     relation = LibECS.make_pair(component_class.id(self), object)
-    get_id(entity, relation, component_class)
+    get_id(subject, relation, component_class)
   end
 
   # Set the value of a component.
@@ -134,13 +138,15 @@ struct ECS::World
   # operation is equivalent to calling ecs_get_mut and ecs_modified.
   #
   # If the provided entity is 0, a new entity will be created.
-  def set_id(entity : UInt64, id : UInt64, component : T) : T forall T
+  def set_id(entity, id : UInt64, component : T) : T forall T
+    entity = entity.id(self) unless entity.is_a?(UInt64)
     LibECS.set_id(self, entity, id, sizeof(T), pointerof(component))
     component
   end
 
   # Convenience wrapper for set_id for when component implements the id method.
-  def set(entity : UInt64, component : T) forall T
+  def set(entity, component : T) forall T
+    entity = entity.id(self) unless entity.is_a?(UInt64)
     set_id(entity, component.class.id(self), component)
   end
 
@@ -150,7 +156,9 @@ struct ECS::World
   end
 
   # Set a component that relates a subject entity to an object entity.
-  def set_relation(subject : UInt64, component : T, object : UInt64) forall T
+  def set_relation(subject : UInt64, component : T, object) forall T
+    subject = subject.id(self) unless subject.is_a?(UInt64)
+    object = object.id(self) unless object.is_a?(UInt64)
     relation = LibECS.make_pair(component.class.id(self), object)
     set_id(subject, relation, component)
   end
@@ -160,13 +168,15 @@ struct ECS::World
   # This operation removes a single entity from the type of an entity. Type roles
   # may be used in combination with the added entity. If the entity does not have
   # the entity, this operation will have no side effects.
-  def remove_id(entity : UInt64, id : UInt64) forall T
+  def remove_id(entity, id : UInt64) forall T
+    entity = entity.id(self) unless entity.is_a?(UInt64)
     LibECS.remove_id(self, entity, id)
     nil
   end
 
   # Convenience wrapper for remove_id for when component implements the id method.
-  def remove(entity : UInt64, component_class : T.class) forall T
+  def remove(entity, component_class : T.class) forall T
+    entity = entity.id(self) unless entity.is_a?(UInt64)
     remove_id(entity, component_class.id(self))
   end
 
@@ -177,6 +187,8 @@ struct ECS::World
 
   # Remove a component if it relates the subject entity to the object entity.
   def remove_relation(subject : UInt64, component_class : T.class, object : UInt64) forall T
+    subject = subject.id(self) unless subject.is_a?(UInt64)
+    object = object.id(self) unless object.is_a?(UInt64)
     relation = LibECS.make_pair(component_class.id(self), object)
     remove_id(subject, relation)
   end
