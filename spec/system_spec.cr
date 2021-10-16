@@ -10,7 +10,8 @@ module SystemExamples
   ECS.component AgeStats do
     property mean : Float64
     property total : UInt32
-    def initialize(@mean = 0_f64, @total = 0_u32)
+    property id_total : UInt64
+    def initialize(@mean = 0_f64, @total = 0_u32, @id_total = 0_u64)
     end
   end
 
@@ -36,11 +37,20 @@ module SystemExamples
     singleton stats : AgeStats, write: true, read: false
 
     def self.run(iter)
-      total_age = 0_u32
-      iter.each { |row| total_age &+= row.age.years }
-      mean_age = total_age / iter.count
+      age_total = 0_u32
+      id_total = 0_u64
 
-      iter.stats = AgeStats[mean: mean_age, total: total_age]
+      iter.each { |row|
+        age_total &+= row.age.years
+        id_total &+= row.id
+      }
+      age_mean = age_total / iter.count
+
+      iter.stats = AgeStats[
+        mean: age_mean,
+        total: age_total,
+        id_total: id_total,
+      ]
     end
   end
 end
@@ -64,17 +74,20 @@ describe System do
     stats = world.set_singleton(SystemExamples::AgeStats[]).not_nil!
     stats.mean.should eq 0
     stats.total.should eq 0
+    stats.id_total.should eq 0
 
     world.progress
 
     stats = world.get_singleton(SystemExamples::AgeStats).not_nil!
     stats.mean.should eq 94.5
     stats.total.should eq 189
+    stats.id_total.should eq alice + bob
 
     world.progress
 
     stats = world.get_singleton(SystemExamples::AgeStats).not_nil!
     stats.mean.should eq 95.5
     stats.total.should eq 191
+    stats.id_total.should eq alice + bob
   end
 end

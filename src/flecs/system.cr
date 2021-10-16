@@ -35,6 +35,10 @@ module ECS::System::DSL
         @index : Int32
         def initialize(@unsafe, @index)
         end
+
+        def id
+          @unsafe.value.entities[@index]
+        end
       end
 
       def world
