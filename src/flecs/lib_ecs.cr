@@ -45,7 +45,8 @@ module ECS
       id : UInt64
       inout : Int32 # TODO: enum
       pred : TermID
-      args : TermID[2]
+      subj : TermID
+      obj : TermID
       oper : Int32 # TODO: enum
       role : UInt64
       name : UInt8*
@@ -83,7 +84,6 @@ module ECS
       binding_ctx : Void*
       delta_time : Float32
       delta_system_time : Float32
-      world_time : Float32
       frame_offset : Int32
       offset : Int32
       count : Int32
