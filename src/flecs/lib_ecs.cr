@@ -1,6 +1,24 @@
 module ECS
   @[Link(ldflags: "-L#{__DIR__}/../../vendor -lflecs")]
   lib LibECS
+    $bool_t = FLECS__Eecs_bool_t : UInt64
+    $char_t = FLECS__Eecs_char_t : UInt64
+    $byte_t = FLECS__Eecs_byte_t : UInt64
+    $u8_t = FLECS__Eecs_u8_t : UInt64
+    $u16_t = FLECS__Eecs_u16_t : UInt64
+    $u32_t = FLECS__Eecs_u32_t : UInt64
+    $u64_t = FLECS__Eecs_u64_t : UInt64
+    $uptr_t = FLECS__Eecs_uptr_t : UInt64
+    $i8_t = FLECS__Eecs_i8_t : UInt64
+    $i16_t = FLECS__Eecs_i16_t : UInt64
+    $i32_t = FLECS__Eecs_i32_t : UInt64
+    $i64_t = FLECS__Eecs_i64_t : UInt64
+    $iptr_t = FLECS__Eecs_iptr_t : UInt64
+    $f32_t = FLECS__Eecs_f32_t : UInt64
+    $f64_t = FLECS__Eecs_f64_t : UInt64
+    $string_t = FLECS__Eecs_string_t : UInt64
+    $entity_t = FLECS__Eecs_entity_t : UInt64
+
     type WorldRef = Void*
     type QueryRef = Void*
     type TableRef = Void*
@@ -187,6 +205,11 @@ module ECS
 
     fun set_target_fps = ecs_set_target_fps(world : WorldRef, fps : Float32)
 
+    fun set_scope = ecs_set_scope(
+      world : WorldRef,
+      scope : UInt64,
+    ) : UInt64
+
     fun entity_init = ecs_entity_init(
       world : WorldRef,
       desc : EntityDesc*,
@@ -198,6 +221,15 @@ module ECS
     ) : UInt64
 
     fun lookup = ecs_lookup(world : WorldRef, name : UInt8*) : UInt64
+
+    fun lookup_path_w_sep = ecs_lookup_path_w_sep(
+      world : WorldRef,
+      parent : UInt64,
+      path : UInt8*,
+      sep : UInt8*,
+      prefix : UInt8*,
+      recursive : Bool,
+    ) : UInt64
 
     fun component_init = ecs_component_init(
       world : WorldRef,
@@ -233,5 +265,39 @@ module ECS
       world : WorldRef,
       delta_time : Float32,
     ) : Bool
+
+    fun doc_set_brief = ecs_doc_set_brief(
+      world : WorldRef,
+      entity : UInt64,
+      description : Pointer(UInt8),
+    ) : Void
+
+    fun doc_set_detail = ecs_doc_set_detail(
+      world : WorldRef,
+      entity : UInt64,
+      description : Pointer(UInt8),
+    ) : Void
+
+    fun doc_set_link = ecs_doc_set_link(
+      world : WorldRef,
+      entity : UInt64,
+      link : Pointer(UInt8),
+    ) : Void
+
+    fun doc_get_brief = ecs_doc_get_brief(
+      world : WorldRef,
+      entity : UInt64,
+    ) : Pointer(UInt8)
+
+    fun doc_get_detail = ecs_doc_get_detail(
+      world : WorldRef,
+      entity : UInt64,
+    ) : Pointer(UInt8)
+
+    fun doc_get_link = ecs_doc_get_link(
+      world : WorldRef,
+      entity : UInt64,
+    ) : Pointer(UInt8)
+
   end
 end

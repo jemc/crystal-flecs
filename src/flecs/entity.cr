@@ -1,3 +1,5 @@
+require "./world"
+
 module ECS
   macro entity(name, &block)
     module {{name}}

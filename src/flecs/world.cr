@@ -23,7 +23,11 @@ struct ECS::World
   #
   # This operation creates a world with all builtin modules loaded.
   def self.init
-    new(LibECS.init, Root.new)
+    world = new(LibECS.init, Root.new)
+
+    ECS.builtins_register(world)
+
+    world
   end
 
   # Delete a world.
@@ -60,6 +64,23 @@ struct ECS::World
   # See the setter method for more details on how this value is used.
   def target_fps
     info.target_fps
+  end
+
+  # Set the current scope, temporarily.
+  #
+  # This operation sets the scope of the current stage to the provided entity.
+  # As a result new entities will be created in this scope, and lookups will be
+  # relative to the provided scope.
+  #
+  # Restore the scope to the old value after the block is done.
+  def in_scope(entity)
+    entity = entity.id(self) unless entity.is_a?(UInt64)
+    old_scope_entity = LibECS.set_scope(self, entity)
+
+    yield
+
+    LibECS.set_scope(self, old_scope_entity)
+    nil
   end
 
   # Find or create an entity.
@@ -100,6 +121,11 @@ struct ECS::World
   # Returns the entity with the specified name, or nil if no entity was found.
   def lookup(name : String) : UInt64?
     id = LibECS.lookup(self, name)
+    id if id != 0
+  end
+
+  def lookup_fullpath(path : String) : UInt64?
+    id = LibECS.lookup_path_w_sep(self, 0_u64, path, ".", nil, true)
     id if id != 0
   end
 
@@ -211,5 +237,106 @@ struct ECS::World
   # Returns false if ecs_quit has been called, true otherwise.
   def progress(delta_time : Float32 = 0) : Bool
     LibECS.progress(self, delta_time)
+  end
+
+  # Add brief description to entity.
+  #
+  # Please ensure that the String is a String literal,
+  # or that it is retained somewhere traceable from Crystal,
+  # because otherwise the buffer may be garbage-collected,
+  # leading to memory corruption.
+  #
+  # TODO: Some way to enforce this?
+  # Maybe with a macro that enforces StringLiteral?
+  def doc_set_brief(entity, description : String)
+    entity = entity.id(self) unless entity.is_a?(UInt64)
+    LibECS.doc_set_brief(self, entity, description)
+    description
+  end
+
+  # Add detailed description to entity.
+  #
+  # Please ensure that the String is a String literal,
+  # or that it is retained somewhere traceable from Crystal,
+  # because otherwise the buffer may be garbage-collected,
+  # leading to memory corruption.
+  #
+  # TODO: Some way to enforce this?
+  # Maybe with a macro that enforces StringLiteral?
+  def doc_set_detail(entity, description : String)
+    entity = entity.id(self) unless entity.is_a?(UInt64)
+    LibECS.doc_set_detail(self, entity, description)
+    description
+  end
+
+  # Add link to external documentation to entity.
+  #
+  # Please ensure that the String is a String literal,
+  # or that it is retained somewhere traceable from Crystal,
+  # because otherwise the buffer may be garbage-collected,
+  # leading to memory corruption.
+  #
+  # TODO: Some way to enforce this?
+  # Maybe with a macro that enforces StringLiteral?
+  def doc_set_link(entity, link : String)
+    entity = entity.id(self) unless entity.is_a?(UInt64)
+    LibECS.doc_set_link(self, entity, link)
+    link
+  end
+
+  # Get brief description from entity.
+  #
+  # Performance warning: a new String object is allocated,
+  # along with a new buffer that copies the docs from the original buffer,
+  # because Crystal doesn't want to create a String that shares the memory.
+  def doc_get_brief(entity) : String?
+    entity = entity.id(self) unless entity.is_a?(UInt64)
+    ptr = LibECS.doc_get_brief(self, entity)
+    String.new(ptr) unless ptr.null?
+  end
+
+  # Get detailed description from entity.
+  #
+  # Performance warning: a new String object is allocated,
+  # along with a new buffer that copies the docs from the original buffer,
+  # because Crystal doesn't want to create a String that shares the memory.
+  def doc_get_detail(entity) : String?
+    entity = entity.id(self) unless entity.is_a?(UInt64)
+    ptr = LibECS.doc_get_detail(self, entity)
+    String.new(ptr) unless ptr.null?
+  end
+
+  # Get link to external documentation from entity.
+  #
+  # Performance warning: a new String object is allocated,
+  # along with a new buffer that copies the docs from the original buffer,
+  # because Crystal doesn't want to create a String that shares the memory.
+  def doc_get_link(entity) : String?
+    entity = entity.id(self) unless entity.is_a?(UInt64)
+    ptr = LibECS.doc_get_link(self, entity)
+    String.new(ptr) unless ptr.null?
+  end
+
+  # For meta purposes, we want to be able to represent any member type
+  # from a Crystal component as an entity id in flecs.
+  def ecs_type_from_crystal_member_type(t) : UInt64
+    case t
+    when Bool           .class then LibECS.bool_t
+    when UInt8          .class then LibECS.u8_t
+    when UInt16         .class then LibECS.u16_t
+    when UInt32         .class then LibECS.u32_t
+    when UInt64         .class then LibECS.u64_t
+    when LibC::SizeT    .class then LibECS.uptr_t
+    when Int8           .class then LibECS.i8_t
+    when Int16          .class then LibECS.i16_t
+    when Int32          .class then LibECS.i32_t
+    when Int64          .class then LibECS.i64_t
+    when Float32        .class then LibECS.f32_t
+    when Float64        .class then LibECS.f64_t
+    when Pointer(UInt8) .class then LibECS.string_t
+    else                            LibECS.uptr_t
+    # TODO: Handle embedded structs
+    # TODO: Disallow classes, due to GC concerns?
+    end
   end
 end

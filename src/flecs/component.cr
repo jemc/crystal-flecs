@@ -1,3 +1,5 @@
+require "./world"
+
 module ECS
   macro component(name, &block)
     struct {{name}}
@@ -5,7 +7,17 @@ module ECS
       include ECS::Component::DSL
       _dsl_begin
       {{block.body}}
-      _dsl_end({{name}})
+      _dsl_end({{name}}, false)
+    end
+  end
+
+  macro builtin_component(name, &block)
+    struct {{name}}
+      extend ECS::Component::StaticMethods
+      include ECS::Component::DSL
+      _dsl_begin
+      {{block.body}}
+      _dsl_end({{name}}, true)
     end
   end
 end
@@ -24,6 +36,10 @@ module ECS::Component::StaticMethods
     # If the id is already registered, don't continue.
     return if id(world) != 0
 
+    if is_builtin?
+      return save_id(world, world.lookup_fullpath(ecs_name).not_nil!)
+    end
+
     desc = ::ECS::LibECS::ComponentDesc.new
     desc.entity.name = ecs_name
     desc.size = sizeof(self)
@@ -36,6 +52,8 @@ module ECS::Component::StaticMethods
 
     save_id(world, id)
 
+    register_docs(world, id) unless is_builtin?
+
     # If the component author declared an after_register method, run it now.
     the_self = self
     if the_self.responds_to?(:after_register)
@@ -44,18 +62,68 @@ module ECS::Component::StaticMethods
 
     id
   end
+
+  def register_docs(world : ::ECS::World, id : UInt64)
+    # Start declaring entities within the scope of this entity.
+    world.in_scope id do
+      # For every instance variable in the type,
+      {% for ivar in @type.instance_vars %}
+        # If it has an associated getter method,
+        {% method = @type.methods.find(&.name.==(ivar.name)) %}
+        {% if method %}
+          # Gather documentation lines by crudely loading the source file
+          # and gathering up lines beginning with the comment marker, `#`.
+          {% lines = read_file(method.filename).lines %}
+          {% iter_count = method.return_type.line_number - 1 %}
+          {% comment_lines = [] of StringLiteral %}
+          {% comment_finished = false %}
+          {% for i in (1...iter_count) %}
+            {% line = lines[iter_count - i] %}
+            {% if !comment_finished && line =~ /\A\s*#/ %}
+              {% comment_lines.unshift(line.gsub(/\A\s*#\s*/, "")) %}
+            {% else %}
+              {% comment_finished = true %}
+            {% end %}
+          {% end %}
+
+          # If there are any comment lines, register them as docs.
+          {% if !comment_lines.empty? %}
+            name = "{{ivar.name}}"
+            brief = {{ comment_lines.join("\n").split("\n\n")[0].split("\n").join(" ").strip }}
+            detail = {{ comment_lines.join("\n") }}
+
+            member_id = world.entity_init(name: name)
+            world.set(member_id, ::ECS::Member.new(
+              type: world.ecs_type_from_crystal_member_type({{ivar.type}}),
+              count: 1,
+            ))
+
+            world.doc_set_brief(member_id, brief)
+            world.doc_set_detail(member_id, detail)
+          {% end %}
+        {% end %}
+      {% end %}
+    end
+  end
 end
 
 module ::ECS::Component::DSL
   macro _dsl_begin
   end
 
-  macro _dsl_end(name)
+  macro _dsl_end(name, is_builtin)
     {% ecs_name = name.resolve.id.gsub(/:/, "_") %}
-    ECS_NAME = "{{ecs_name}}"
+
+    {% if !is_builtin %}
+      ECS_NAME = "{{ecs_name}}"
+    {% end %}
 
     def self.ecs_name
       ECS_NAME
+    end
+
+    def self.is_builtin?
+      {{is_builtin}}
     end
 
     class ::ECS::World::Root
