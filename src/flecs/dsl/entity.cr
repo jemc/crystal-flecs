@@ -29,16 +29,23 @@ module ECS::DSL::Entity
     {% end %}
   end
 
-  macro _dsl_end(name)
+  macro _dsl_end(name, is_builtin)
     {% ecs_name = name.resolve.id.gsub(/:/, "_") %}
-    ECS_NAME = "{{ecs_name}}"
+
+    {% if !is_builtin %}
+      ECS_NAME = "{{ecs_name}}"
+    {% end %}
 
     def self.ecs_name
       ECS_NAME
     end
 
+    def self.is_builtin?
+      {{is_builtin}}
+    end
+
     class ::ECS::World::Root
-      # The id of the {{name}} component is stored here in the World Root.
+      # The id of the {{name}} entity is stored here in the World Root.
       property _id_for_{{ecs_name}} = 0_u64
     end
 
@@ -52,6 +59,10 @@ module ECS::DSL::Entity
 
     # Register this entity within the given World.
     def self.register(world : ::ECS::World)
+      if is_builtin?
+        return save_id(world, world.lookup_fullpath(ecs_name).not_nil!)
+      end
+
       the_self = self
       # If the entity author declared a before_register method, run it now.
       if the_self.responds_to?(:before_register)

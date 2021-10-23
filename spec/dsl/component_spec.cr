@@ -19,6 +19,27 @@ module ComponentExamples
     end
   end
 
+  ECS.component WithTriggers do
+    property number : Int32
+    def initialize(@number)
+    end
+
+    TRIGGER_EVIDENCE = [] of {Symbol, UInt64, Int32}
+
+    def self.on_add(iter)
+      iter.each { |row|
+        row.responds_to?(:value).should eq false # no values yet in on_add
+        TRIGGER_EVIDENCE << {:on_add, row.id, 0}
+      }
+    end
+
+    def self.on_remove(iter)
+      iter.each { |row|
+        TRIGGER_EVIDENCE << {:on_remove, row.id, row.value.number}
+      }
+    end
+  end
+
   ECS.component Documented do
     # This is the foo.
     #
@@ -51,6 +72,26 @@ describe ECS::DSL::Component do
 
   it "can call its own register method witout causing an infinite loop" do
     ComponentExamples::ReEntrance.register(world)
+  end
+
+  it "can run custom triggers on add and remove from an entity" do
+    id = ComponentExamples::WithTriggers.register(world)
+
+    foo = world.entity_init(name: "foo")
+    bar = world.entity_init(name: "bar")
+
+    world.set(foo, ComponentExamples::WithTriggers[77])
+    world.set(bar, ComponentExamples::WithTriggers[88])
+    world.set(foo, ComponentExamples::WithTriggers[99])
+    world.remove(bar, ComponentExamples::WithTriggers)
+    world.remove(foo, ComponentExamples::WithTriggers)
+
+    ComponentExamples::WithTriggers::TRIGGER_EVIDENCE.should eq [
+      {:on_add, foo, 0},
+      {:on_add, bar, 0},
+      {:on_remove, bar, 88},
+      {:on_remove, foo, 99},
+    ]
   end
 
   it "registers documentation and meta information" do

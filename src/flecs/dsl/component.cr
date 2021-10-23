@@ -1,6 +1,7 @@
 require "../lib_ecs"
 require "../world"
 require "./meta"
+require "./trigger"
 
 module ECS::DSL::Component::StaticMethods
   # Convenience/vanity wrappers for the `new` constructor function.
@@ -33,6 +34,14 @@ module ECS::DSL::Component::StaticMethods
     save_id(world, id)
 
     ::ECS::DSL::Meta.register_members(world, {{@type}}, id) unless is_builtin?
+
+    # Register standard on_add/on_remove triggers, if defined.
+    {% if @type.class.methods.find(&.name.==("on_add")) %}
+      ::ECS::DSL::Trigger.register_basic_on_add(world, {{ @type }}, id)
+    {% end %}
+    {% if @type.class.methods.find(&.name.==("on_remove")) %}
+      ::ECS::DSL::Trigger.register_basic_on_remove(world, {{ @type }}, id)
+    {% end %}
 
     # If the component author declared an after_register method, run it now.
     the_self = self

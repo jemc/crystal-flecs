@@ -12,50 +12,17 @@ module ECS::DSL::System
         unless INTERNAL_TERMS_COUNTER.empty?
     %}
 
+    # The parameter given to a system is an iterator struct, which contains all
+    # the context needed to operate on the table/rows/entities in the system.
+    #
+    # We inject some basic methods here, and will inject further methods later
+    # that are specific to the terms present in the system, as conveniently
+    # named and strongly typed accessors that can deal with terms.
     struct Iter
-      @unsafe : ::ECS::LibECS::Iter*
-      @world_root : ::ECS::World::Root
-      def initialize(@unsafe, @world_root : ::ECS::World::Root)
-      end
-
-      # A table row to be processed by the system during iteration.
-      #
-      # It contains macro-generated accessor methods for each term
-      # named during declaration of the system (via the DSL).
       struct Row
-        @unsafe : ::ECS::LibECS::Iter*
-        @index : Int32
-        def initialize(@unsafe, @index)
-        end
-
-        def id
-          @unsafe.value.entities[@index]
-        end
+        ::ECS::DSL::Iter.inject_row!
       end
-
-      def world
-        ::ECS::World.new(@unsafe.value.world, @world_root)
-      end
-
-      # Number of entities to process by system.
-      def count : Int32
-        @unsafe.value.count
-      end
-
-      # Total number of entities in table.
-      def total_count : Int32
-        @unsafe.value.total_count
-      end
-
-      # Yield each Row to be processed by the system.
-      def each
-        count = self.count
-        index = 0
-        while index < count
-          yield Row.new(@unsafe, index)
-          index = index &+ 1
-        end
-      end
+      ::ECS::DSL::Iter.inject!(Row)
     end
 
     # Get ready to accumulate query string fragments as terms are declared.

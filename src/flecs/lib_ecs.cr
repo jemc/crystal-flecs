@@ -141,6 +141,7 @@ module ECS
 
     ECS_MAX_ADD_REMOVE = 32
     ECS_TERM_DESC_CACHE_SIZE = 16
+    ECS_TRIGGER_DESC_EVENT_COUNT_MAX = 8
 
     struct EntityDesc
       entity : UInt64
@@ -197,6 +198,22 @@ module ECS
       tick_source : UInt64
     end
 
+    struct TriggerDesc
+      entity : EntityDesc
+      term : Term
+      expr : UInt8*
+      events : UInt64[ECS_TRIGGER_DESC_EVENT_COUNT_MAX]
+      match_prefab : Bool
+      match_disabled : Bool
+      callback : Iter* -> # TODO: IterAction
+      the_self : UInt64
+      ctx : Void*
+      binding_ctx : Void*
+      ctx_free : CtxFreeAction
+      binding_ctx_free : CtxFreeAction
+      observable : Void* # TODO: ecs_poly_t*
+    end
+
     fun init = ecs_init() : WorldRef
 
     fun fini = ecs_fini(world : WorldRef) : Int32
@@ -244,6 +261,11 @@ module ECS
     fun system_init = ecs_system_init(
       world : WorldRef,
       desc : SystemDesc*,
+    ) : UInt64
+
+    fun trigger_init = ecs_trigger_init(
+      world : WorldRef,
+      desc : TriggerDesc*,
     ) : UInt64
 
     fun get_id = ecs_get_id(
