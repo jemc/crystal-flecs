@@ -252,6 +252,20 @@ struct ECS::World
     LibECS.progress(self, delta_time)
   end
 
+  # Signal exit.
+  #
+  # This operation signals that the application should quit. It will cause
+  # ecs_progress to return false.
+  def quit!
+    LibECS.quit(self)
+    nil
+  end
+
+  # Return whether a quit has been signaled.
+  def quit? : Bool
+    LibECS.should_quit(self)
+  end
+
   # Add brief description to entity.
   #
   # Please ensure that the String is a String literal,

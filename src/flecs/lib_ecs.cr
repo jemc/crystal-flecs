@@ -293,6 +293,10 @@ module ECS
       delta_time : Float32,
     ) : Bool
 
+    fun quit = ecs_quit(world : WorldRef)
+
+    fun should_quit = ecs_should_quit(world : WorldRef) : Bool
+
     fun doc_set_brief = ecs_doc_set_brief(
       world : WorldRef,
       entity : UInt64,

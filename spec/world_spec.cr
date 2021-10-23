@@ -54,6 +54,16 @@ describe ECS::World do
     world.get_relation(alice, WorldExamples::Age, house).should eq nil
   end
 
+  it "can signal that a quit is desired" do
+    world.quit?.should eq false
+    world.progress.should eq true
+
+    world.quit!
+
+    world.quit?.should eq true
+    world.progress.should eq false
+  end
+
   it "can tell the total number of frames that have elapsed" do
     world.info.frame_count_total.should eq 0
     world.progress
