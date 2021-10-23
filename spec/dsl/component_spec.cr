@@ -50,6 +50,10 @@ describe ECS::DSL::Component do
     foo_id = world.lookup_fullpath("#{c_name}.foo").not_nil!
     bar_id = world.lookup_fullpath("#{c_name}.bar").not_nil!
 
+    component = world.get(ComponentExamples::Documented, ECS::Component).not_nil!
+    component.size.should eq 16
+    component.alignment.should eq 8
+
     foo_type = world.get(foo_id, ECS::Member).not_nil!.type
     bar_type = world.get(bar_id, ECS::Member).not_nil!.type
 
