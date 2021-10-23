@@ -41,51 +41,56 @@ module ECS::DSL::System
   # under the given accessor name. For every row in the query results,
   # the component will be accessible to read and/or write using the accessors
   # that get implicitly declared by this macro on Iter and Iter::Row.
-  macro term(decl, write = false, read = true)
+  macro term(decl, write = false, read = true, of = nil, relate = nil)
+    {% name = decl.var %}
+    {% type = decl.type %}
+    {% subject = of %}
+    {% object = relate %}
+
     struct Iter
       {% if read %}
-        def get_{{decl.var}}(index : Int32) : {{decl.type}}
-          Pointer(Pointer({{decl.type}})).new(
+        def get_{{name}}(index : Int32) : {{type}}
+          Pointer(Pointer({{type}})).new(
             @unsafe.value.ptrs.address
           )[{{ INTERNAL_TERMS_COUNTER.size }}][index]
         end
       {% end %}
 
       {% if write %}
-        def set_{{decl.var}}(index : Int32, value : {{decl.type}})
-          Pointer(Pointer({{decl.type}})).new(
+        def set_{{name}}(index : Int32, value : {{type}})
+          Pointer(Pointer({{type}})).new(
             @unsafe.value.ptrs.address
           )[{{ INTERNAL_TERMS_COUNTER.size }}][index] = value
         end
       {% end %}
 
       {% if read && write %}
-        def update_{{decl.var}}(index : Int32, &block : {{decl.type}} -> {{decl.type}})
-          set_{{decl.var}}(index, yield get_{{decl.var}}(index))
+        def update_{{name}}(index : Int32, &block : {{type}} -> {{type}})
+          set_{{name}}(index, yield get_{{name}}(index))
         end
       {% end %}
     end
 
     struct Iter::Row
       {% if read %}
-        def {{decl.var}} : {{decl.type}}
-          Pointer(Pointer({{decl.type}})).new(
+        def {{name}} : {{type}}
+          Pointer(Pointer({{type}})).new(
             @unsafe.value.ptrs.address
           )[{{ INTERNAL_TERMS_COUNTER.size }}][@index]
         end
       {% end %}
 
       {% if write %}
-        def {{decl.var}}=(value : {{decl.type}}) : {{decl.type}}
-          Pointer(Pointer({{decl.type}})).new(
+        def {{name}}=(value : {{type}}) : {{type}}
+          Pointer(Pointer({{type}})).new(
             @unsafe.value.ptrs.address
           )[{{ INTERNAL_TERMS_COUNTER.size }}][@index] = value
         end
       {% end %}
 
       {% if read && write %}
-        def update_{{decl.var}}(&block : {{decl.type}} -> {{decl.type}})
-          self.{{decl.var}} = yield self.{{decl.var}}
+        def update_{{name}}(&block : {{type}} -> {{type}})
+          self.{{name}} = yield self.{{name}}
         end
       {% end %}
     end
@@ -97,8 +102,22 @@ module ECS::DSL::System
     }#{
       "out" if {{write}}
     }] #{
-      {{ decl.type }}::ECS_NAME
-    }"
+      {{type}}::ECS_NAME
+    }" +
+      {% if subject %}
+        {% if object %}
+          "(#{{{subject}}::ECS_NAME}, #{{{object}}::ECS_NAME})"
+        {% else %}
+          "(#{{{subject}}::ECS_NAME})"
+        {% end %}
+      {% else %}
+        {% if object %}
+          "(This, #{{{object}}::ECS_NAME})"
+        {% else %}
+          ""
+        {% end %}
+      {% end %}
+
 
     # Ensure that the component entity is registered before the system entity.
     ON_REGISTER_HOOKS << ->(world : ::ECS::World) { {{decl.type}}.register(world) }

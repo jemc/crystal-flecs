@@ -1,6 +1,9 @@
 require "../spec_helper"
 
 module SystemTermExamples
+  ECS.entity Alice
+  ECS.entity Bob
+
   ECS.component Age do
     property years : UInt32
     def initialize(@years)
@@ -74,6 +77,33 @@ module SystemTermExamples
     phase "EcsOnStore"
 
     singleton x : Age, read: false
+
+    def self.run(iter)
+    end
+  end
+
+  ECS.system WithSubject do
+    phase "EcsOnStore"
+
+    term x : Age, of: Alice
+
+    def self.run(iter)
+    end
+  end
+
+  ECS.system WithObject do
+    phase "EcsOnStore"
+
+    term x : Age, relate: Bob
+
+    def self.run(iter)
+    end
+  end
+
+  ECS.system WithSubjectAndObject do
+    phase "EcsOnStore"
+
+    term x : Age, of: Alice, relate: Bob
 
     def self.run(iter)
     end
@@ -179,5 +209,20 @@ describe ECS::DSL::System do
     iter.should_not contain "x"
     iter.should_not contain "x="
     iter.should_not contain "update_x"
+  end
+
+  it "can declare a term with a specific entity as the subject" do
+    SystemTermExamples::WithSubject::QUERY_STRING
+      .should eq "[in] SystemTermExamples__Age(SystemTermExamples__Alice)"
+  end
+
+  it "can declare a term with a specific entity as the object" do
+    SystemTermExamples::WithObject::QUERY_STRING
+      .should eq "[in] SystemTermExamples__Age(This, SystemTermExamples__Bob)"
+  end
+
+  it "can declare a term with two specific entities as subject and object" do
+    SystemTermExamples::WithSubjectAndObject::QUERY_STRING
+      .should eq "[in] SystemTermExamples__Age(SystemTermExamples__Alice, SystemTermExamples__Bob)"
   end
 end
