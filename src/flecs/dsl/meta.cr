@@ -3,10 +3,10 @@ require "../world"
 
 module ECS::DSL::Meta
   macro entity_for_crystal_type(world, type)
-    if !({{ type }} < Struct)
+    {% if !type.resolve.struct? || type.stringify.starts_with?("Pointer(") %}
       # For non-struct types, we have a simple, non-macro path for returning them.
       ::ECS::DSL::Meta.entity_prim_for_crystal_type({{ type }})
-    else
+    {% else %}
       %world = {{ world }}
       struct_name = {{ type.resolve.id.gsub(/:/, "_").stringify }}
 
@@ -25,7 +25,7 @@ module ECS::DSL::Meta
 
         struct_id
       end
-    end
+    {% end %}
   end
 
   macro register_members(world, type, scope_id)
