@@ -1,4 +1,4 @@
-require "./spec_helper"
+require "../spec_helper"
 
 module SystemTermExamples
   ECS.component Age do
@@ -62,7 +62,7 @@ module SystemTermExamples
   end
 end
 
-describe System do
+describe ECS::DSL::System do
   it "can declare a read-only term (by default)" do
     SystemTermExamples::ReadOnly::QUERY_STRING
       .should eq "[in] SystemTermExamples__Age"
