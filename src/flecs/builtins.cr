@@ -1,16 +1,7 @@
 require "./entity"
 require "./component"
 
-module ECS
-  # TODO: Auto-register all builtins using a macro that scans the list of
-  # all constants defined in ECS::Builtin, then include ECS::Builtin
-  def self.builtins_register(world)
-    OnAdd.register(world)
-    OnRemove.register(world)
-    Component.register(world)
-    Member.register(world)
-  end
-
+module ECS::Builtins
   ECS.builtin_entity(OnAdd) { ECS_NAME = "flecs.core.OnAdd" }
   ECS.builtin_entity(OnRemove) { ECS_NAME = "flecs.core.OnRemove" }
 
@@ -29,4 +20,17 @@ module ECS
     def initialize(@type, @count)
     end
   end
+
+  # Register all of the above builtin entities when we call this function.
+  def self.register(world)
+    {% for constant in @type.constants %}
+      {{ constant }}.register(world)
+    {% end %}
+  end
+end
+
+module ECS
+  # Include all Builtins in the ECS scope for easy access, like flecs in C code.
+  # For example, EcsComponent in C code translates to ECS::Component here.
+  include ECS::Builtins
 end

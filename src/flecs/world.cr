@@ -1,3 +1,5 @@
+require "./builtins"
+
 struct ECS::World
   # This is our internal mutable state container for the world, where we will
   # put anything we need to access from Crystal which isn't in flecs.
@@ -25,7 +27,7 @@ struct ECS::World
   def self.init
     world = new(LibECS.init, Root.new)
 
-    ECS.builtins_register(world)
+    ECS::Builtins.register(world)
 
     world
   end
