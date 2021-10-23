@@ -126,7 +126,7 @@ module ECS::DSL::System
     {% INTERNAL_TERMS_COUNTER << nil %}
 
     QUERY_STRING_TERMS << "[#{
-      "in" if {{read}}
+      "in" if {{read || !write}}
     }#{
       "out" if {{write}}
     }] #{
@@ -169,7 +169,7 @@ module ECS::DSL::System
     {% INTERNAL_TERMS_COUNTER << nil %}
 
     QUERY_STRING_TERMS << "[#{
-      "in" if {{read}}
+      "in" if {{read || !write}}
     }#{
       "out" if {{write}}
     }] $#{

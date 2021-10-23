@@ -34,6 +34,15 @@ module SystemTermExamples
     end
   end
 
+  ECS.system NeitherReadNorWrite do
+    phase "EcsOnStore"
+
+    term x : Age, read: false
+
+    def self.run(iter)
+    end
+  end
+
   ECS.system SingletonReadOnly do
     phase "EcsOnStore"
 
@@ -56,6 +65,15 @@ module SystemTermExamples
     phase "EcsOnStore"
 
     singleton x : Age, write: true, read: false
+
+    def self.run(iter)
+    end
+  end
+
+  ECS.system SingletonNeitherReadNorWrite do
+    phase "EcsOnStore"
+
+    singleton x : Age, read: false
 
     def self.run(iter)
     end
@@ -108,6 +126,21 @@ describe ECS::DSL::System do
     row.should_not contain "update_x"
   end
 
+  it "can declare a neither-read-nor-write term" do
+    SystemTermExamples::NeitherReadNorWrite::QUERY_STRING
+      .should eq "[in] SystemTermExamples__Age"
+
+    iter = method_names_of(SystemTermExamples::NeitherReadNorWrite::Iter)
+    iter.should_not contain "get_x"
+    iter.should_not contain "set_x"
+    iter.should_not contain "update_x"
+
+    row = method_names_of(SystemTermExamples::NeitherReadNorWrite::Iter::Row)
+    row.should_not contain "x"
+    row.should_not contain "x="
+    row.should_not contain "update_x"
+  end
+
   it "can declare a read-only singleton term" do
     SystemTermExamples::SingletonReadOnly::QUERY_STRING
       .should eq "[in] $SystemTermExamples__Age"
@@ -135,6 +168,16 @@ describe ECS::DSL::System do
     iter = method_names_of(SystemTermExamples::SingletonWriteOnly::Iter)
     iter.should_not contain "x"
     iter.should contain "x="
+    iter.should_not contain "update_x"
+  end
+
+  it "can declare a neither-read-nor-write singleton term" do
+    SystemTermExamples::SingletonNeitherReadNorWrite::QUERY_STRING
+      .should eq "[in] $SystemTermExamples__Age"
+
+    iter = method_names_of(SystemTermExamples::SingletonNeitherReadNorWrite::Iter)
+    iter.should_not contain "x"
+    iter.should_not contain "x="
     iter.should_not contain "update_x"
   end
 end
