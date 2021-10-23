@@ -21,8 +21,6 @@ module ECS::DSL::Component::StaticMethods
 
     desc = ::ECS::LibECS::ComponentDesc.new
     desc.entity.name = ecs_name
-    desc.size = sizeof(self)
-    desc.alignment = offsetof({self, self}, 1)
     # TODO: desc.entity.add_expr ?
 
     id = ::ECS::LibECS.component_init(world, pointerof(desc))
@@ -31,7 +29,7 @@ module ECS::DSL::Component::StaticMethods
 
     save_id(world, id)
 
-    register_docs(world, id) unless is_builtin?
+    register_meta(world, id) unless is_builtin?
 
     # If the component author declared an after_register method, run it now.
     the_self = self
@@ -42,11 +40,18 @@ module ECS::DSL::Component::StaticMethods
     id
   end
 
-  def register_docs(world : ::ECS::World, id : UInt64)
+  def register_meta(world : ::ECS::World, id : UInt64)
     # Start declaring entities within the scope of this entity.
     world.in_scope id do
       # For every instance variable in the type,
       {% for ivar in @type.instance_vars %}
+        # Register a meta entry for this member.
+        member_id = world.entity_init(name: "{{ivar.name}}")
+        world.set(member_id, ::ECS::Member.new(
+          type: world.ecs_type_from_crystal_member_type({{ivar.type}}),
+          count: 1,
+        ))
+
         # If it has an associated getter method,
         {% method = @type.methods.find(&.name.==(ivar.name)) %}
         {% if method %}
@@ -67,16 +72,8 @@ module ECS::DSL::Component::StaticMethods
 
           # If there are any comment lines, register them as docs.
           {% if !comment_lines.empty? %}
-            name = "{{ivar.name}}"
             brief = {{ comment_lines.join("\n").split("\n\n")[0].split("\n").join(" ").strip }}
             detail = {{ comment_lines.join("\n") }}
-
-            member_id = world.entity_init(name: name)
-            world.set(member_id, ::ECS::Member.new(
-              type: world.ecs_type_from_crystal_member_type({{ivar.type}}),
-              count: 1,
-            ))
-
             world.doc_set_brief(member_id, brief)
             world.doc_set_detail(member_id, detail)
           {% end %}

@@ -29,6 +29,8 @@ module ComponentExamples
     #
     # Please always get it from a string literal!
     property bar : Pointer(UInt8) = "foo".to_unsafe
+
+    property baz : Float64 = 0
   end
 end
 
@@ -49,16 +51,19 @@ describe ECS::DSL::Component do
     c_name = ComponentExamples::Documented.ecs_name
     foo_id = world.lookup_fullpath("#{c_name}.foo").not_nil!
     bar_id = world.lookup_fullpath("#{c_name}.bar").not_nil!
+    baz_id = world.lookup_fullpath("#{c_name}.baz").not_nil!
 
     component = world.get(ComponentExamples::Documented, ECS::Component).not_nil!
-    component.size.should eq 16
+    component.size.should eq 24
     component.alignment.should eq 8
 
     foo_type = world.get(foo_id, ECS::Member).not_nil!.type
     bar_type = world.get(bar_id, ECS::Member).not_nil!.type
+    baz_type = world.get(baz_id, ECS::Member).not_nil!.type
 
     foo_type.should eq ECS::LibECS.i32_t
     bar_type.should eq ECS::LibECS.string_t
+    baz_type.should eq ECS::LibECS.f64_t
 
     world.doc_get_brief(foo_id).not_nil!.should eq \
       "This is the foo."
@@ -69,5 +74,8 @@ describe ECS::DSL::Component do
       "This is the bar."
     world.doc_get_detail(bar_id).not_nil!.should eq \
       "This is the bar.\n\nPlease always get it from a string literal!"
+
+    world.doc_get_brief(baz_id).should eq nil
+    world.doc_get_detail(baz_id).should eq nil
   end
 end
