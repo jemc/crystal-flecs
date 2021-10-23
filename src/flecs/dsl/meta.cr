@@ -10,20 +10,22 @@ module ECS::DSL::Meta
       %world = {{ world }}
       struct_name = {{ type.resolve.id.gsub(/:/, "_").stringify }}
 
-      # If an entity with this name already exists in the world, return it now.
-      struct_id = %world.lookup(name: struct_name)
-      struct_id || begin
-        # Otherwise we must declare it as a new entity.
-        desc = ::ECS::LibECS::ComponentDesc.new
-        desc.entity.name = struct_name
-        desc.size = sizeof({{ type }})
-        desc.alignment = [sizeof({{ type }}), 8].min
-        struct_id = ::ECS::LibECS.component_init(%world, pointerof(desc))
+      %world.in_scope 0_u64 do
+        # If an entity with this name already exists in the world, use it.
+        struct_id = %world.lookup(name: struct_name)
+        struct_id || begin
+          # Otherwise we must declare it as a new entity.
+          desc = ::ECS::LibECS::ComponentDesc.new
+          desc.entity.name = struct_name
+          desc.size = sizeof({{ type }})
+          desc.alignment = [sizeof({{ type }}), 8].min
+          struct_id = ::ECS::LibECS.component_init(%world, pointerof(desc))
 
-        # And we must declare each of its members, within the scope of it.
-        ::ECS::DSL::Meta.register_members({{ world }}, {{ type }}, struct_id)
+          # And we must declare each of its members, within the scope of it.
+          ::ECS::DSL::Meta.register_members({{ world }}, {{ type }}, struct_id)
 
-        struct_id
+          struct_id
+        end
       end
     {% end %}
   end

@@ -79,8 +79,7 @@ struct ECS::World
 
     yield
 
-    LibECS.set_scope(self, old_scope_entity)
-    nil
+    .tap { LibECS.set_scope(self, old_scope_entity) }
   end
 
   # Find or create an entity.

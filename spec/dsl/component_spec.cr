@@ -73,6 +73,8 @@ describe ECS::DSL::Component do
     bar_type.should eq ECS::LibECS.string_t
     world.get_name(baz_type).should eq "Slice(Slice(UInt8))"
 
+    world.lookup(name: "Slice(Slice(UInt8))").should eq baz_type
+
     baz_component = world.get(baz_type, ECS::Component).not_nil!
     baz_component.size.should eq 16
     baz_component.alignment.should eq 8
