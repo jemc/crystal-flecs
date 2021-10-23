@@ -1,4 +1,4 @@
-require "./spec_helper"
+require "../spec_helper"
 
 module ComponentExamples
   ECS.component AfterRegister do
@@ -32,7 +32,7 @@ module ComponentExamples
   end
 end
 
-describe ECS::Component do
+describe ECS::DSL::Component do
   it "can run custom hooks before and after registering with the world" do
     id = ComponentExamples::AfterRegister.register(world)
 

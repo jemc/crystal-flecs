@@ -1,4 +1,4 @@
-require "./spec_helper"
+require "../spec_helper"
 
 module EntityExamples
   ECS.component Age do
@@ -21,7 +21,7 @@ module EntityExamples
   end
 end
 
-describe ECS::World do
+describe ECS::DSL::Entity do
   it "can be registered to obtain an id" do
     EntityExamples::Alice.id(world).should eq 0
 

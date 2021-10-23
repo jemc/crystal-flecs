@@ -1,4 +1,4 @@
-require "./spec_helper"
+require "../spec_helper"
 
 module SystemExamples
   ECS.component Age do
@@ -55,7 +55,7 @@ module SystemExamples
   end
 end
 
-describe System do
+describe ECS::DSL::System do
   it "can be declared and ran" do
     SystemExamples::IncrementAge::QUERY_STRING
       .should eq "[inout] SystemExamples__Age"
