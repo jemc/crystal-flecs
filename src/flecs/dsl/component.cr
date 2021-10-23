@@ -17,7 +17,7 @@ module ECS::DSL::Component::StaticMethods
     # If the id is already registered, don't continue.
     return if id(world) != 0
 
-    if is_builtin?
+    if is_extern?
       return save_id(world, world.lookup_fullpath(ecs_name).not_nil!)
     end
 
@@ -33,7 +33,7 @@ module ECS::DSL::Component::StaticMethods
 
     save_id(world, id)
 
-    ::ECS::DSL::Meta.register_members(world, {{@type}}, id) unless is_builtin?
+    ::ECS::DSL::Meta.register_members(world, {{@type}}, id) unless is_extern?
 
     # Register standard on_add/on_remove triggers, if defined.
     {% if @type.class.methods.find(&.name.==("on_add")) %}
@@ -57,10 +57,10 @@ module ::ECS::DSL::Component
   macro _dsl_begin
   end
 
-  macro _dsl_end(name, is_builtin)
+  macro _dsl_end(name, is_extern)
     {% ecs_name = name.resolve.id.gsub(/:/, "_") %}
 
-    {% if !is_builtin %}
+    {% if !is_extern %}
       ECS_NAME = "{{ecs_name}}"
     {% end %}
 
@@ -68,8 +68,8 @@ module ::ECS::DSL::Component
       ECS_NAME
     end
 
-    def self.is_builtin?
-      {{is_builtin}}
+    def self.is_extern?
+      {{is_extern}}
     end
 
     class ::ECS::World::Root

@@ -2,10 +2,10 @@ require "./entity"
 require "./component"
 
 module ECS::Builtins
-  ECS.builtin_entity(OnAdd) { ECS_NAME = "flecs.core.OnAdd" }
-  ECS.builtin_entity(OnRemove) { ECS_NAME = "flecs.core.OnRemove" }
+  ECS.extern_entity(OnAdd) { ECS_NAME = "flecs.core.OnAdd" }
+  ECS.extern_entity(OnRemove) { ECS_NAME = "flecs.core.OnRemove" }
 
-  ECS.builtin_component Component do
+  ECS.extern_component Component do
     ECS_NAME = "Component"
     property size : Int32
     property alignment : Int32
@@ -13,7 +13,7 @@ module ECS::Builtins
     end
   end
 
-  ECS.builtin_component Member do
+  ECS.extern_component Member do
     ECS_NAME = "flecs.meta.Member"
     property type : UInt64
     property count : Int32

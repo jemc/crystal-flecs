@@ -29,10 +29,10 @@ module ECS::DSL::Entity
     {% end %}
   end
 
-  macro _dsl_end(name, is_builtin)
+  macro _dsl_end(name, is_extern)
     {% ecs_name = name.resolve.id.gsub(/:/, "_") %}
 
-    {% if !is_builtin %}
+    {% if !is_extern %}
       ECS_NAME = "{{ecs_name}}"
     {% end %}
 
@@ -40,8 +40,8 @@ module ECS::DSL::Entity
       ECS_NAME
     end
 
-    def self.is_builtin?
-      {{is_builtin}}
+    def self.is_extern?
+      {{is_extern}}
     end
 
     class ::ECS::World::Root
@@ -59,7 +59,7 @@ module ECS::DSL::Entity
 
     # Register this entity within the given World.
     def self.register(world : ::ECS::World)
-      if is_builtin?
+      if is_extern?
         return save_id(world, world.lookup_fullpath(ecs_name).not_nil!)
       end
 

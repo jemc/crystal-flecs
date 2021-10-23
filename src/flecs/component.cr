@@ -11,7 +11,7 @@ module ECS
     end
   end
 
-  macro builtin_component(name, &block)
+  macro extern_component(name, &block)
     struct {{name}}
       extend ::ECS::DSL::Component::StaticMethods
       include ::ECS::DSL::Component

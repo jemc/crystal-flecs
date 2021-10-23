@@ -10,7 +10,7 @@ module ECS
     end
   end
 
-  macro builtin_entity(name, &block)
+  macro extern_entity(name, &block)
     module {{name}}
       include ::ECS::DSL::Entity
       _dsl_begin
