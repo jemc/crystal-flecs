@@ -1,5 +1,5 @@
 vendor/flecs.o: vendor/flecs.c
-	cc -o $@ -c $^
+	cc -g -o $@ -c $^
 
 vendor/libflecs.a: vendor/flecs.o
 	ar -rc $@ $^
