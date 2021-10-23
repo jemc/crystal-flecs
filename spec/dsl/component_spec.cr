@@ -1,6 +1,12 @@
 require "../spec_helper"
 
 module ComponentExamples
+  ECS.component Age do
+    property years : UInt32
+    def initialize(@years)
+    end
+  end
+
   ECS.component AfterRegister do
     property dummy : Int32 = 0
 
@@ -64,6 +70,24 @@ module ComponentExamples
 end
 
 describe ECS::DSL::Component do
+  it "auto-defines convenience mutators that return the mutated self" do
+    ComponentExamples::Age.register(world)
+
+    ages = [
+      ComponentExamples::Age[77_u32],
+      ComponentExamples::Age[88_u32],
+      ComponentExamples::Age[99_u32],
+    ]
+
+    ages.map(&.years).should eq [77_u32, 88_u32, 99_u32]
+    ages.map(&.with_years(100_u32)).map(&.years)
+      .should eq [100_u32, 100_u32, 100_u32]
+
+    # The component is a struct, so the years should not have been modified
+    # in the original instances, despite being mutated in the mapped instances.
+    ages.map(&.years).should eq [77_u32, 88_u32, 99_u32]
+  end
+
   it "can run custom hooks before and after registering with the world" do
     id = ComponentExamples::AfterRegister.register(world)
 

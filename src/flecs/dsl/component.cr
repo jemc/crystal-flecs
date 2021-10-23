@@ -84,5 +84,21 @@ module ::ECS::DSL::Component
     private def self.save_id(world : ::ECS::World, id : UInt64)
       world.root._id_for_{{ecs_name}} = id
     end
+
+    # For each setter method, define a convenience mutator that wraps it.
+    {% for setter in @type.methods %}
+      {% if setter.name.ends_with?("=") %}
+        {% property_name = setter.name.stringify.gsub(/=\z/, "").id %}
+
+        # Update the {{ property_name }} and return self for chaining.
+        #
+        # This is useful for mutating a struct because it ensures that the
+        # mutated instance of the struct is what is returned.
+        def with_{{ property_name }}(value)
+          self.{{ setter.name }} value
+          self
+        end
+      {% end %}
+    {% end %}
   end
 end
