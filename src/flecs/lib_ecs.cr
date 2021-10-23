@@ -220,6 +220,11 @@ module ECS
       object : UInt64,
     ) : UInt64
 
+    fun get_name = ecs_get_name(
+      world : WorldRef,
+      entity : UInt64,
+    ) : Pointer(UInt8)
+
     fun lookup = ecs_lookup(world : WorldRef, name : UInt8*) : UInt64
 
     fun lookup_path_w_sep = ecs_lookup_path_w_sep(

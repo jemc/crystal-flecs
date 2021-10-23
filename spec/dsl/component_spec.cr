@@ -30,7 +30,15 @@ module ComponentExamples
     # Please always get it from a string literal!
     property bar : Pointer(UInt8) = "foo".to_unsafe
 
-    property baz : Float64 = 0
+    # This next property is not documented, because there is an empty space
+    # following this comment before the property is declared.
+    # However, its still part of the memory layout, and indeed, it requires
+    # special attention in the memory layout because it is an embedded struct.
+
+    property baz : Slice(Slice(UInt8))
+
+    def initialize(@baz)
+    end
   end
 end
 
@@ -54,7 +62,7 @@ describe ECS::DSL::Component do
     baz_id = world.lookup_fullpath("#{c_name}.baz").not_nil!
 
     component = world.get(ComponentExamples::Documented, ECS::Component).not_nil!
-    component.size.should eq 24
+    component.size.should eq 32
     component.alignment.should eq 8
 
     foo_type = world.get(foo_id, ECS::Member).not_nil!.type
@@ -63,7 +71,11 @@ describe ECS::DSL::Component do
 
     foo_type.should eq ECS::LibECS.i32_t
     bar_type.should eq ECS::LibECS.string_t
-    baz_type.should eq ECS::LibECS.f64_t
+    world.get_name(baz_type).should eq "Slice(Slice(UInt8))"
+
+    baz_component = world.get(baz_type, ECS::Component).not_nil!
+    baz_component.size.should eq 16
+    baz_component.alignment.should eq 8
 
     world.doc_get_brief(foo_id).not_nil!.should eq \
       "This is the foo."

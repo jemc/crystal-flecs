@@ -113,6 +113,18 @@ struct ECS::World
     id
   end
 
+  # Get the name of an entity.
+  # This will return the name stored in (EcsIdentifier, EcsName).
+  #
+  # Performance warning: a new String object is allocated,
+  # along with a new buffer that copies the docs from the original buffer,
+  # because Crystal doesn't want to create a String that shares the memory.
+  def get_name(entity)
+    entity = entity.id(self) unless entity.is_a?(UInt64)
+    ptr = LibECS.get_name(self, entity)
+    String.new(ptr) unless ptr.null?
+  end
+
   # Lookup an entity by name.
   #
   # Returns an entity that matches the specified name. Only looks for entities in
@@ -315,28 +327,5 @@ struct ECS::World
     entity = entity.id(self) unless entity.is_a?(UInt64)
     ptr = LibECS.doc_get_link(self, entity)
     String.new(ptr) unless ptr.null?
-  end
-
-  # For meta purposes, we want to be able to represent any member type
-  # from a Crystal component as an entity id in flecs.
-  def ecs_type_from_crystal_member_type(t) : UInt64
-    case t
-    when Bool           .class then LibECS.bool_t
-    when UInt8          .class then LibECS.u8_t
-    when UInt16         .class then LibECS.u16_t
-    when UInt32         .class then LibECS.u32_t
-    when UInt64         .class then LibECS.u64_t
-    when LibC::SizeT    .class then LibECS.uptr_t
-    when Int8           .class then LibECS.i8_t
-    when Int16          .class then LibECS.i16_t
-    when Int32          .class then LibECS.i32_t
-    when Int64          .class then LibECS.i64_t
-    when Float32        .class then LibECS.f32_t
-    when Float64        .class then LibECS.f64_t
-    when Pointer(UInt8) .class then LibECS.string_t
-    else                            LibECS.uptr_t
-    # TODO: Handle embedded structs
-    # TODO: Disallow classes, due to GC concerns?
-    end
   end
 end
